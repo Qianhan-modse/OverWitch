@@ -1,11 +1,136 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Entitying;
-using Usittion;
 using Valuitem;
+using static isiter.over;
 
 namespace isiter
 {
+    public class Events
+    {
+        private bool isCanceled = false;
+    private Result result;
+    private EventPriority? phase;
+    private static ListenerList listeners = new ListenerList();
+
+    public Events()
+    {
+        this.result = Result.DEFAULT;
+        this.phase = null;
+        this.setup();
+    }
+
+    protected void setup()
+    {
+        // 在子类中实现具体的事件逻辑
+    }
+
+    public enum Result
+    {
+        DENY,
+        DEFAULT,
+        ALLOW
+    }
+
+    public interface HasResult
+    {
+        Result GetResult();
+        void SetResult(Result result);
+    }
+
+    // 添加事件监听器相关方法
+    public void RegisterListener(EventListener listener)
+    {
+        listeners.Register(listener);
+    }
+
+    public void UnregisterListener(EventListener listener)
+    {
+        listeners.Unregister(listener);
+    }
+
+    public void NotifyListeners()
+    {
+        listeners.NotifyListeners(this);
+    }
+
+    public ListenerList GetListenerList()
+    {
+        return listeners;
+    }
+
+        internal void setPhase(over over)
+        {
+            throw new NotImplementedException();
+        }
+    }
+    public class ListenerList : IEnumerable<EventListener>
+{
+    private List<EventListener> listeners = new List<EventListener>();
+
+    public void Register(EventListener listener)
+    {
+        listeners.Add(listener);
+    }
+
+    public void Unregister(EventListener listener)
+    {
+        listeners.Remove(listener);
+    }
+
+    public void NotifyListeners(Events eventData)
+    {
+        foreach (var listener in listeners)
+        {
+            listener.OnEvent(eventData);
+        }
+    }
+
+    public IEnumerator<EventListener> GetEnumerator()
+    {
+        return listeners.GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+    }
+
+public interface EventListener
+{
+    void OnEvent(Events eventData);
+    }
+
+
+    public interface IEventListener
+    {
+        void invoke(Events var1);
+    }
+    public class EventBus{
+        private ListenerList listeners = new ListenerList();
+
+    public void RegisterListener(EventListener listener)
+    {
+        listeners.Register(listener);
+    }
+
+    public void UnregisterListener(EventListener listener)
+    {
+        listeners.Unregister(listener);
+    }
+
+    public void Post(Events eventData)
+    {
+        listeners.NotifyListeners(eventData);
+    }
+
+        internal bool Post(EntityMountEvent entityMountEvent)
+        {
+            throw new NotImplementedException();
+        }
+    }
     public class log
 
     {
@@ -256,4 +381,19 @@ namespace isiter
             base.set(HEALTH, v);
         }
     }
+
+    public class over{
+    public enum EventPriority
+    {
+        HIGHEST,
+        HIGH,
+        NORMAL,
+        LOW,
+        LOWEST,
+        }
+        public void invoke(Events events)
+        {
+            events.setPhase(this);
+        }
+    }       
 }

@@ -6,6 +6,10 @@ using EntityLivingBaseing;
 using System.Threading.Tasks;
 using isiter;
 using Random = UnityEngine.Random;
+using System.Collections.Generic;
+using NUnit.Framework;
+using Valuitem;
+using System.Collections.ObjectModel;
 
 namespace Entitying
 {
@@ -17,7 +21,7 @@ namespace Entitying
         public TypeDataManager dataManager;
         public static readonly DataParameter<float> HEALTH = new DataParameter<float>("health");
         public EntityLivingBase Base;
-        private static bool isRemove = false;
+        public static bool isRemove = false;
 
         public bool isClearDebuff;
 
@@ -30,17 +34,27 @@ namespace Entitying
         public double MINdamage{set;get;}
         public bool invulnerable;
         public bool isEntity;
+        private Entity ridingEntity;
+
+        private Lists<Entity>riddenByEntities;
 
         private int entityId;
         public DamageSource velocityChanged;
         internal object targetDeath;
 
         private object dataManger { get { return MaxHealth; } }
+        public World world;
+        public float prevRotationYaw;
+        public float prevRotationPitch;
 
         private float MaxHealth;
         public float maxHealth { set { MaxHealth = value; } get { return MaxHealth; } }
 
         private float CurrentHealth;
+        public double posX;
+        public double posY;
+        public double posZ;
+
         public float currentHealth { set { CurrentHealth = value; } get { return CurrentHealth; } }
 
         public float value { set; get; }
@@ -126,37 +140,26 @@ namespace Entitying
             return new DamageSource("attack", new Entity());
         }
 
+        public bool isRiding()
+        {
+            return!this.getPassengers().isEmpty();
+        }
         //需要时间移除实体的调用这个方法，内部remoevEntity需要时间的也会调用这个方法;
-        public static async void RemoveEntity(Entity entity, [DefaultValue("0.0F")] float t)
+        public static async void RemoveEntity(Entity entity,World world, [DefaultValue("0.0F")] float t)
         {
             if (t <= 0.0F)
             {
-                removeEntityImmediately(entity);
+                World.removeEntityImmediately(entity,world);
             }
             else
             {
                 await Task.Delay((int)(t * 1000));
-                removeEntityImmediately(entity);
-            }
-        }
-
-        //不可外部调用
-        private static void removeEntityImmediately(Entity entity)
-        {
-            if (entity != null && entity.isDead)
-            {//如果实体不是null且isDead不为false，则调用这个方法；
-                Entity.isRemove = true;
-                removeEntity(entity);
-            }
-            else if (entity != null && (entity.isEntity || !entity.isDead))
-            {//如果实体为true（是实体）且isDead为false时调用下面的方法
-                Entity.isRemove = true;
-                removeEntity(entity);
+                World.removeEntityImmediately(entity,world);
             }
         }
 
         //主要负责移除实体的
-        public static void removeEntity(Entity entity)
+       /* public virtual void removeEntity(Entity entity)
         {
             if (entity == null)
             {
@@ -177,6 +180,41 @@ namespace Entitying
                 return;
             }
             return;
+        }*/
+
+        public Lists<Entity>getPassengers()
+        {
+            return (Lists<Entity>)(this.riddenByEntities.Count == 0 ? new List<Entity>() : new List<Entity>((IEnumerable<Entity>)this.riddenByEntities));
+        }
+        public bool isBeingRidden()
+        {
+            return !this.getPassengers().isEmpty();
+        }
+
+        public void removePassengers(Entity entity)
+        {
+            for(int i=this.riddenByEntities.size()-1;i>=0;--i)
+            {
+                ((Entity)this.riddenByEntities.get(i)).dismountRidingEntity();
+            }
+        }
+        public void dismountRidingEntity()
+        {
+            if(this.ridingEntity!=null)
+            {
+                Entity entity=this.ridingEntity;
+                if(!EventFactory.canMountEntity(this,entity,false))
+                {
+                    return;
+                }
+                this.ridingEntity=null;
+                entity.removePassengers(this);
+            }
+        }
+
+        public void setWorld(World world1)
+        {
+            this.world=world1;
         }
 
         //死亡时执行该方法
@@ -295,6 +333,23 @@ namespace Entitying
         public virtual void Update()
         {
 
+        }
+
+        public void setPositionAndRotation(double var1,double val2,double val3,float val4,float val5)
+        {
+            //方法带定义
+        }
+
+        public void removePassengers()
+        {
+            for(int i = this.riddenByEntities.size() - 1; i >= 0; --i) {
+            ((Entity)this.riddenByEntities.get(i)).dismountRidingEntity();
+        }
+        }
+
+        internal void onRemovedFromWorld()
+        {
+            throw new NotImplementedException();
         }
     }
 
