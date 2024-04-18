@@ -24,4 +24,10 @@ public class EntityPlayer : EntityLivingBase
         }
         this.Damage(MinDamage,MaxDamage);
     }
+
+    public override void onKillEntity(EntityLivingBase source)
+    {
+        //若无其他定义则默认返回原值
+        base.onKillEntity(source);
+    }
 }

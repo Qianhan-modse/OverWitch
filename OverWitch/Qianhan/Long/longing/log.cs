@@ -111,7 +111,9 @@ public interface EventListener
     public class EventBus{
         private ListenerList listeners = new ListenerList();
 
-    public void RegisterListener(EventListener listener)
+        public static object EVENT_BUS { get; internal set; }
+
+        public void RegisterListener(EventListener listener)
     {
         listeners.Register(listener);
     }
@@ -130,7 +132,13 @@ public interface EventListener
         {
             throw new NotImplementedException();
         }
+
+        internal bool Post(LivingDeathEvent deathEvent)
+        {
+            throw new NotImplementedException();
+        }
     }
+
     public class log
 
     {
@@ -216,7 +224,7 @@ public interface EventListener
             return Value;
         }
 
-        public T setValue()
+        public T setValue(Entitying.T va2)
         {
             return Value;
         }
@@ -317,12 +325,12 @@ public interface EventListener
             }
         }
 
-        private DataEntry<T> getEntry(DataParameter<float> parameter)
+        public DataEntry<T> getEntry(DataParameter<float> parameter)
         {
             throw new NotImplementedException();
         }
 
-        private DataEntry<T> getEntry(DataParameter<T> parameter)
+        public DataEntry<T> getEntry(DataParameter<T> parameter)
         {
             throw new NotImplementedException();
         }
@@ -379,6 +387,27 @@ public interface EventListener
         public override void set(DataParameter<float> HEALTH, float v)
         {
             base.set(HEALTH, v);
+        }
+
+        internal void set(DataParameter<byte> fLAGS, byte v)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void set(DataParameter<T>va1,T va2)
+        {
+            DataEntry<T>dataentry=this.getEntry(va1);
+            if(ObjectUtils.notEqual(va2,dataentry.getValue()))
+            {
+                dataentry.setValue(va2);
+                this.entity.notifyDataManagerChange(va1);
+                dataentry.setDirty(true);
+            }
+        }
+
+        public T get(DataParameter<T>vur1)
+        {
+            return this.getEntry(vur1).getValue();
         }
     }
 

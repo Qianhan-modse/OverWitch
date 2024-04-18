@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using Valuitem;
 using System.Collections.ObjectModel;
+using System.Collections;
 
 namespace Entitying
 {
@@ -36,6 +37,9 @@ namespace Entitying
         public bool isEntity;
         private Entity ridingEntity;
 
+        protected bool glowing;
+        protected static DataParameter<Byte>FLAGS;
+
         private Lists<Entity>riddenByEntities;
 
         private int entityId;
@@ -44,6 +48,8 @@ namespace Entitying
 
         private object dataManger { get { return MaxHealth; } }
         public World world;
+        public bool captureDrops=false;
+        public ArrayList<EntityItem> capturedDrops = new ArrayList();
         public float prevRotationYaw;
         public float prevRotationPitch;
 
@@ -62,12 +68,49 @@ namespace Entitying
         // Start is called before the first frame update
         public virtual void Start()
         {
+            
+        }
 
+        public virtual void onEntityUpdate()
+        {
+            //自定义即可
+        }
+
+        protected void setFlag(int int1,bool bool2)
+        {
+            byte b0=(Byte)this.dataManager.get(FLAGS);
+            if(bool2)
+            {
+                this.dataManager.set(FLAGS,(byte)(b0|1<<int1));
+            }
+            else
+            {
+                this.dataManager.set(FLAGS,(byte)(b0&~(1<<int1)));
+            }
+        }
+
+        public bool getFlag(int int2)
+        {
+            return((Byte)this.dataManager.get(FLAGS)&1<<int2)!=0;
         }
 
         public virtual void onUpdate()
         {
+            if(!this.world.isRemote)
+            {
+                this.setFlag(6, this.isGlowing());
+            }
+            this.onEntityUpdate();
+        }
 
+        public bool isGlowing()
+        {
+            return this.glowing||this.world.isRemote&&this.getFlag(6);
+        }
+
+        public World getEntityWorld()
+        {
+            return this.world;
         }
 
         public bool isDeath(Entity entity)
@@ -86,7 +129,7 @@ namespace Entitying
         public int getEntityId() { return this.entityId; }
         public void setEntityId(int ontty) { this.entityId = ontty; }
 #pragma warning disable IDE1006 // 命名样式
-        public void setHealth(float value)
+        public virtual void setHealth(float value)
         {
             this.dataManager.set(HEALTH, MathHeper.clamp(value, 0.0F, this.GetMaxHealth()));
         }
@@ -96,17 +139,17 @@ namespace Entitying
 
         }
 
-        public float getHealth()
+        public virtual float getHealth()
         {
             return this.dataManager.get(HEALTH);
         }
 
-        public void setDeath()
+        public virtual void setDeath()
         {
             this.isDead = true;
         }
 
-        public bool attackEntityForm(DamageSource source, float value)
+        public virtual bool attackEntityForm(DamageSource source, float value)
         {
             if (this.isEntityInvulnerable(source))
             {
@@ -286,7 +329,7 @@ namespace Entitying
         }
 
         private void setMaxHealth(float value)
-        {
+        {//设置最大血量
             if (value <= 0)
             {
                 Debug.LogError("最大生命值不能为0或负数!");
@@ -298,7 +341,7 @@ namespace Entitying
         }
 
         public float GetMaxHealth()
-        {
+        {//获取最大血量
             maxHealth = value;
             if (maxHealth <= 0)
             {
@@ -308,7 +351,7 @@ namespace Entitying
         }
 
         public virtual void setDamage(int value)
-        {
+        {//可被覆盖的设置伤害，为零则没有伤害
             if (value<0)
             {
                 Debug.LogError("伤害值不能小于0！");
@@ -316,8 +359,8 @@ namespace Entitying
             return;
         }
 
-        internal void setDamage(float value)
-        {
+        public virtual void setDamage(float value)
+        {//设置伤害值，为零则没有伤害
             if (value<0)
             {
                 Debug.LogError("伤害值不能小于0！");
@@ -331,8 +374,9 @@ namespace Entitying
         }
 
         public virtual void Update()
-        {
-
+        {//为了更好的初始化内容，Update被拆分为多种，只要是含有on...Update的方法都可放在这里进行初始化并调用
+        //比如onEntityUpdate
+            onUpdate();
         }
 
         public void setPositionAndRotation(double var1,double val2,double val3,float val4,float val5)
@@ -342,6 +386,7 @@ namespace Entitying
 
         public void removePassengers()
         {
+            //我也忘了这是干啥的了
             for(int i = this.riddenByEntities.size() - 1; i >= 0; --i) {
             ((Entity)this.riddenByEntities.get(i)).dismountRidingEntity();
         }
@@ -351,6 +396,18 @@ namespace Entitying
         {
             throw new NotImplementedException();
         }
+
+        public void awardKillSource(Entity entity,int int2,DamageSource source)
+        {
+            if(entity is EntityPlayer)
+            {
+                //带定义;
+            }
+        }
+    }
+
+    public class EntityItem
+    {
     }
 
     public class T

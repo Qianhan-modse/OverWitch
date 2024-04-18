@@ -2,13 +2,16 @@ using System.Collections.Generic;
 using Entitying;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 public class World : MonoBehaviour
 {
     protected Lists<IWorldEventListener>eventListeners;
     private bool isAddedToWorld;
+    public bool isRemote;
+    public Profiler profiler;
     public List<EntityPlayer>playerEntities=new List<EntityPlayer>();
-    public void removeEntity(Entity entity)
+    public virtual void removeEntity(Entity entity)
     {
         if(entity.isBeingRidden())
         {
@@ -56,6 +59,19 @@ public class World : MonoBehaviour
         for(int i=0;i<this.eventListeners.size();++i)
         {
             ((IWorldEventListener)this.eventListeners.get(i)).onEntityRemoved(entity);
+        }
+        entity.onRemovedFromWorld();
+    }
+
+    public void removeEventListener(IWorldEventListener eventListener)
+    {
+        this.eventListeners.remove((Valuitem.Object)eventListener);
+    }
+    public void onEntityAdded(Entity entity)
+    {
+        for(int i=0;i<this.eventListeners.size();++i)
+        {
+            ((IWorldEventListener)this.eventListeners.get(i)).onEntityAdded(entity);
         }
         entity.onRemovedFromWorld();
     }

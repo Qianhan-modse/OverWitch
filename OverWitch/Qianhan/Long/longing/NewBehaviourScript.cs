@@ -41,7 +41,7 @@ namespace Valuitem
         }
     }
     public interface Iterator<E>{
-        object action { get; set; }
+        E action { get; set; }
 
         bool hasNext();
         E next();
@@ -50,12 +50,19 @@ namespace Valuitem
             throw new UnsupportedOperationException("remove");
         }
 
-        public void forEachRachRemaining(Consumer<T , E>action)
+        public void forEachRachRemaining(Action<E>action)
         {
-            Object.RequireNonNull(action);
+            RequireNonNull(action);
             while(hasNext())
             {
-                action.accept(next());
+                action.Invoke(next());
+            }
+        }
+        private void RequireNonNull(object obj)
+        {
+            if(obj==null)
+            {
+                throw new ArgumentNullException(nameof(obj));
             }
         }
     }

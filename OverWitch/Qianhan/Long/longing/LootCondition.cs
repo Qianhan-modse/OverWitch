@@ -1,11 +1,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Transactions;
 using Entitying;
 using isiter;
 using Valuitem;
-using static isiter.EventBus;
-using static isiter.over;
 
 public interface LootCondition
 {
@@ -75,7 +74,7 @@ public class ListenerListInst
 
         private ListenerListInst() {
             this.rebuild = true;
-            int count = Enum.GetValues(typeof(EventPriority)).Length;
+            int count = Enum.GetValues(typeof(over.EventPriority)).Length;
             this.priorities = new ArrayList(count);
 
             for(int x = 0; x < count; ++x) {
@@ -90,9 +89,19 @@ public class ListenerListInst
     }
 }
 
-internal class ArrayList<T>
+public class ArrayList<T>
 {
-    internal void add(ArrayList arrayList)
+    public void add(ArrayList arrayList)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void clear()
+    {
+        throw new NotImplementedException();
+    }
+
+    public Iterator<E> iterator()
     {
         throw new NotImplementedException();
     }
@@ -102,3 +111,9 @@ internal class ArrayList<T>
         throw new NotImplementedException();
     }
 }
+
+public class E
+{
+}
+
+public class Itr { }
