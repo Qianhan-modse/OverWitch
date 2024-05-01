@@ -9,6 +9,7 @@ namespace DamageSourceine
         private float hungerDamage{set;get;}
         private bool damageIsAbsolute;
         private bool isUnblockable{set;get;}
+        public static DamageSource ENTITY=new DamageSource("entity");
         public static DamageSource OUT_OF_WORLD = new DamageSource("outofworld").setDamageBypassesArmor().setDamageIsAbsolute();
         public static DamageSource INFINITY = new DamageSource("infinity");
         public static DamageSource LIGHTNING_BOLT=new DamageSource("lightningBolt").setDamageBypassesArmor();

@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
 using Entitying;
-using NUnit.Framework;
+using EntityLivingBaseing;
+using GameRiule;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Profiling;
 
@@ -8,6 +11,7 @@ public class World : MonoBehaviour
 {
     protected Lists<IWorldEventListener>eventListeners;
     private bool isAddedToWorld;
+    protected WorldInfo worldInfo;
     public bool isRemote;
     public Profiler profiler;
     public List<EntityPlayer>playerEntities=new List<EntityPlayer>();
@@ -74,5 +78,20 @@ public class World : MonoBehaviour
             ((IWorldEventListener)this.eventListeners.get(i)).onEntityAdded(entity);
         }
         entity.onRemovedFromWorld();
+    }
+
+    public void spawnEntity(EntityItem item)
+    {
+        throw new NotImplementedException();
+    }
+
+    public GameRules getGameRules()
+    {
+        return this.worldInfo.getGameRulesInstance();
+    }
+
+    internal void setEntityState(EntityLivingBase entityLivingBase, byte v)
+    {
+        throw new NotImplementedException();
     }
 }

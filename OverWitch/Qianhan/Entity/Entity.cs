@@ -7,21 +7,20 @@ using System.Threading.Tasks;
 using isiter;
 using Random = UnityEngine.Random;
 using System.Collections.Generic;
-using NUnit.Framework;
-using Valuitem;
-using System.Collections.ObjectModel;
 using System.Collections;
+using Valuitem;
 
 namespace Entitying
 {
     public class Entity : MonoBehaviour
     {
         public bool isDead;
+        public bool isAttack;
 
         public bool isDamage;
         public TypeDataManager dataManager;
         public static readonly DataParameter<float> HEALTH = new DataParameter<float>("health");
-        public EntityLivingBase Base;
+        private EntityLivingBase Base;
         public static bool isRemove = false;
 
         public bool isClearDebuff;
@@ -49,7 +48,7 @@ namespace Entitying
         private object dataManger { get { return MaxHealth; } }
         public World world;
         public bool captureDrops=false;
-        public ArrayList<EntityItem> capturedDrops = new ArrayList();
+        public List<EntityItem>capturedDrops=new List<EntityItem>();
         public float prevRotationYaw;
         public float prevRotationPitch;
 
@@ -61,6 +60,10 @@ namespace Entitying
         public double posY;
         public double posZ;
 
+        public int chunkCoordY;
+        public int chunkCorrdX;
+        public int chunkCoordZ;
+
         public float currentHealth { set { CurrentHealth = value; } get { return CurrentHealth; } }
 
         public float value { set; get; }
@@ -68,12 +71,19 @@ namespace Entitying
         // Start is called before the first frame update
         public virtual void Start()
         {
-            
+            Base=new EntityLivingBase();
         }
 
         public virtual void onEntityUpdate()
         {
-            //自定义即可
+            //自定义即可,这里默认返回Entity中定义的方法，可以不返回
+            if(currentHealth<=0)
+            {
+                if(Base!=null)
+                {
+                    Base.onDeath(DamageSource.ENTITY);
+                }
+            }
         }
 
         protected void setFlag(int int1,bool bool2)
@@ -119,9 +129,9 @@ namespace Entitying
 
         }
 
-        public virtual void onKillEntity(EntityLivingBase source)
+        public virtual void onKillEntity(EntityLivingBase bases)
         {
-            setDeath();
+            bases.Killer();
         }
 
         
@@ -131,7 +141,7 @@ namespace Entitying
 #pragma warning disable IDE1006 // 命名样式
         public virtual void setHealth(float value)
         {
-            this.dataManager.set(HEALTH, MathHeper.clamp(value, 0.0F, this.GetMaxHealth()));
+            this.dataManager.set(HEALTH, MathHelper.clamp(value, 0.0F, this.GetMaxHealth()));
         }
 
         public void notifyDataManagerChange(DataParameter<T> sater)
@@ -155,7 +165,15 @@ namespace Entitying
             {
                 return false;
             }
-            else { this.markVelocityChanged(); return false; }
+            if(currentHealth<=0) 
+            {
+                 this.onDeath(DamageSource.ENTITY);
+            }
+            else
+            {
+                this.markVelocityChanged();
+            }
+            return false;
         }
 
         protected void markVelocityChanged()
@@ -263,11 +281,7 @@ namespace Entitying
         //死亡时执行该方法
         public virtual void onDeath(DamageSource damageSource)
         {
-            if (!isDead && currentHealth != 0)
-            {
-                setHealth(0);
-                setDeath();
-            }
+            //允许被覆盖，所以这里留空不提供方法因此也不需要返回虚方法
         }
 
         //伤害判定
@@ -336,13 +350,14 @@ namespace Entitying
                 return;
             }
 
-            maxHealth = value;
+            dataManager.set(HEALTH,value);
+            maxHealth=value;
             currentHealth = Mathf.Min(currentHealth, maxHealth);
         }
 
         public float GetMaxHealth()
         {//获取最大血量
-            maxHealth = value;
+            maxHealth=dataManager.get(HEALTH);
             if (maxHealth <= 0)
             {
                 Debug.LogError("最大生命值不能小于0，无法获取小于0的最大生命值!");
@@ -376,7 +391,7 @@ namespace Entitying
         public virtual void Update()
         {//为了更好的初始化内容，Update被拆分为多种，只要是含有on...Update的方法都可放在这里进行初始化并调用
         //比如onEntityUpdate
-            onUpdate();
+            onEntityUpdate();
         }
 
         public void setPositionAndRotation(double var1,double val2,double val3,float val4,float val5)
@@ -408,6 +423,10 @@ namespace Entitying
 
     public class EntityItem
     {
+        public static explicit operator EntityItem(T v)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public class T

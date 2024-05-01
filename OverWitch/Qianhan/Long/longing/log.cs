@@ -240,7 +240,7 @@ public interface EventListener
         }
     }
 
-    public class MathHeper
+    public class MathHelper
     {
         public static float clamp(float value1, float value2, float value3)
         {
@@ -408,6 +408,11 @@ public interface EventListener
         public T get(DataParameter<T>vur1)
         {
             return this.getEntry(vur1).getValue();
+        }
+
+        internal void get(float maxHealth)
+        {
+            throw new NotImplementedException();
         }
     }
 

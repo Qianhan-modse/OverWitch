@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using DamageSourceine;
 using Entitying;
 using EntityLivingBaseing;
@@ -57,7 +58,7 @@ namespace Usittion
     }
     public class Hooks
     {
-        public static bool onLivingDeath(EntityLivingBase entity,DamageSource source, ArrayList<EntityItem> capturedDrops)
+        public static bool onLivingDeath(EntityLivingBase entity,DamageSource source,List<EntityItem> capturedDrops)
         {
             // 创建一个 LivingDeathEvent 实例
     LivingDeathEvent deathEvent = new LivingDeathEvent(entity, source);
@@ -84,7 +85,7 @@ namespace Usittion
             return false;
         }
 
-        internal static bool onLivingDeath(EntityLivingBase entityLivingBase, DamageSource damageSource)
+        internal static bool onLivingDeath(EntityLivingBase entityLivingBase, DamageSource damageSource, System.Collections.Generic.List<EntityItem> capturedDrops, int i, bool v)
         {
             throw new NotImplementedException();
         }

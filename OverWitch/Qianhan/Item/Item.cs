@@ -1,18 +1,23 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class Item : MonoBehaviour
+namespace Items
 {
-    // Start is called before the first frame update
-    void Start()
+    public class Item:MonoBehaviour
     {
+        //public string Name{get;set;}
+        public virtual void Start()
+        {
 
-    }
+        }
 
-    // Update is called once per frame
-    void Update()
-    {
+        public virtual void Update()
+        {
+            onItemUpdate();
+        }
 
+        private void onItemUpdate()
+        {
+
+        }
     }
 }

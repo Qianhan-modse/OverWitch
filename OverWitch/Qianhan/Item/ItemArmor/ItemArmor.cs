@@ -1,18 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Items;
 
 public class ItemArmor : Item
 {
-    // Start is called before the first frame update
-    void Start()
+    public ItemArmor()
     {
-
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
     }
 }

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Transactions;
 using Entitying;
 using isiter;
+using Items;
 using Valuitem;
 
 public interface LootCondition
@@ -14,7 +15,7 @@ public interface LootCondition
 public interface Lists<E>:Collection<E>
 {
     int Count { get; set; }
-    int size();
+    new int size();
     E get(int index);
     E set(int index,E element);
     void Add(EventListener listener);
@@ -91,14 +92,15 @@ public class ListenerListInst
 
 public class ArrayList<T>
 {
-    public void add(ArrayList arrayList)
+    private List<T>items=new List<T>();
+    public void add(T item)
     {
-        throw new NotImplementedException();
+        items.Add(item);
     }
 
     public void clear()
     {
-        throw new NotImplementedException();
+        this.clear();
     }
 
     public Iterator<E> iterator()
