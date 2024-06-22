@@ -1,1 +1,2 @@
-这是一个适配Unity的C#代码，包含完整的实体流程，以及一些可以被覆盖的虚函数用来协助开发者开发游戏，代码尚未完全更新完毕
+本代码已不再适配unity，除了极少部分代码外大部分代码不再以继承MonoBehaviour，因为我不想让我的代码库局限于unity，它们在unity中只会被视为一个普通的类不会参与unity的生命周期，所以您需要在合适的位置初始化并使用它们。
+This code is no longer compatible with Unity, except for a very small portion of the code that no longer inherits MonoBehavior. I do not want my code base to be limited to Unity, as they will only be treated as ordinary classes in Unity and will not participate in its lifecycle. Therefore, you need to initialize and use them in the appropriate location.
