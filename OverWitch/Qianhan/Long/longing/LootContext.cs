@@ -1,12 +1,7 @@
-using System;
 using System.Collections.Generic;
-using System.Data;
-using classname;
 using DamageSourceine;
 using Entitying;
-using over;
-using Unity.VisualScripting;
-using Valuitem;
+using EntityPlayering;
 
 public class LootContext
 {
@@ -92,7 +87,7 @@ public class LinkedHashSet<E>
         return true;
     }
 
-    public bool Remove(E item)
+    public bool remove(E item)
     {
         if (!dictionary.TryGetValue(item, out LinkedListNode<E> node))
             return false;
@@ -135,7 +130,8 @@ public class LooTable
     }
 }
 
-namespace over{
+namespace over
+{
     public class Collentions
     {
         private Collentions()
@@ -156,15 +152,15 @@ namespace over{
     }
     public class setFromMap<E>
     {
-        private Map<global::E, bool> map;
+        private Dictionary<T, bool> map;
 
-        public setFromMap(Map<global::E, bool> map)
-        {
-            this.map = map;
-        }
+    public setFromMap(Dictionary<T, bool> map)
+    {
+        this.map = map;
+    }
     }
 
-    public class Map<T1, T2>
+    public interface Map<T1, T2>
     {
     }
 }

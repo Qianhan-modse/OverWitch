@@ -1,26 +1,23 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
+using Assets.OverWitch.Qianhan.Damage.util;
+using Assets.OverWitch.Qianhan.FML.Common.collect;
 using EntityLivingBaseing;
-using UnityEngine;
 
-public class CombatTracker : MonoBehaviour
+public class CombatTracker
 {
-    private EntityLivingBase entityLivingBase;
+    private List<CombatEntry> combatEntries = List.newArrayList();
+    private EntityLivingBase fighter;
+    private int lastDamageTime;
+    private int combatStartTime;
+    private int combatEndTime;
+    private bool inCombat;
+    private bool takingDamage;
+    private String fallSuffix;
 
     public CombatTracker(EntityLivingBase entityLivingBase)
     {
-        this.entityLivingBase = entityLivingBase;
+        this.fighter = entityLivingBase;
     }
 
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }

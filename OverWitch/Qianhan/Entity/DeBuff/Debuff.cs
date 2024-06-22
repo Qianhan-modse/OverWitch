@@ -3,11 +3,13 @@ using System.Collections;
 using DamageSourceine;
 using Entitying;
 using UnityEngine;
+using Assets.OverWitch.Qianhan.Damage.util.text.translation;
 
 namespace DeBuff
 {
-    public class Debuff : MonoBehaviour
+    public class Debuff
     {
+        private I18n l18;
         private static float value;
         public float TimeDebuff = value;
         public DamageSource Source;
@@ -19,7 +21,7 @@ namespace DeBuff
 
         private bool isPoisoned;
 
-        public void Start()
+        public Debuff()
         {
             debuffDamage = 1;
             TimeDebuff = 200;
@@ -27,7 +29,7 @@ namespace DeBuff
             level = 1;
         }
 
-        private void Update()
+        private void onEntityDebuffUpdate()
         {
             if (level > 1)
             {
@@ -55,8 +57,8 @@ namespace DeBuff
             {
                 isWither = true;
                 source = new DamageSource("wither");
-                source.setDamageDifficultyScaled().setDamageIsAbsolute();
-                StartCoroutine(WitherEffect(entity));
+                source.setDifficultyScaled().setDamageIsAbsolute();
+                l18.StartCoroutine(WitherEffect(entity));
                 entity.currentHealth = value;
                 if (entity.currentHealth == 0 && TimeDebuff > 0)
                 {
@@ -72,8 +74,8 @@ namespace DeBuff
             {
                 isPoisoned = true;
                 source = new DamageSource("poisoning");
-                source.setDamageBypassesArmor().setDamageIsAbsolute().setDamageDifficultyScaled();
-                StartCoroutine(PoisonEffect(entity));
+                source.setDamageBypassesArmor().setDamageIsAbsolute().setDifficultyScaled();
+                l18.StartCoroutine(PoisonEffect(entity));
                 entity.currentHealth = value;
                 if (entity.currentHealth == 0 && TimeDebuff > 0)
                 {

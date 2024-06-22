@@ -4,6 +4,8 @@ using Entitying;
 public class Chunk
 {
     private List<Entity>entityLists=new List<Entity>();
+    public int x;
+    public int z;
     public void removeEntity(Entity entity)
     {
         this.removeEntityAtIndex(entity,entity.chunkCoordY);

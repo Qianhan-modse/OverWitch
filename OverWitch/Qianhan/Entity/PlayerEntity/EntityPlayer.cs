@@ -1,33 +1,42 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
+using Assets.OverWitch.Qianhan.Entity.PlayerEntity;
 using EntityLivingBaseing;
 using UnityEngine;
-public class EntityPlayer : EntityLivingBase
+namespace EntityPlayering
 {
-    public new float MinDamage=100f;
-    public new float MaxDamage=120f;
-    public bool isplayer { get; set; }
-
-    public Vector3 position{get;set;}
-
-    public override void setDamage(int value)
+    public class EntityPlayer : EntityLivingBase
     {
-        if (isplayer == true)
-        {
-            this.setDamage(value);
-        }
-        else
-        {
-            this.isplayer = false;
-            this.setDamage(value);
-        }
-        this.Damage(MinDamage,MaxDamage);
-    }
+        public new float MinDamage = 100f;
+        public new float MaxDamage = 120f;
+        public bool isplayer;
+        public PlayerCapabilities capabilities=new PlayerCapabilities();
 
-    public override void onKillEntity(EntityLivingBase source)
-    {
-        //若无其他定义则默认返回原值
-        base.onKillEntity(source);
+        public Vector3 position { get; set; }
+        public Vector3 velocity { get; set; } = Vector3.zero;
+        public Vector3 rotation { get; set; }
+        public float speed { get; set; }
+        public float rotationSpeed { get; set; }
+        public float AttackDamage { get; set; }
+        public float AttackSpeed { get; set; }
+
+        private EntityPlayer(float minDamage, float maxDamage, bool isplayer, PlayerCapabilities capabilities, Vector3 position, Vector3 velocity, Vector3 rotation, float speed, float rotationSpeed, float attackDamage, float attackSpeed, float hEALTH)
+        {
+            MinDamage = minDamage;
+            MaxDamage = maxDamage;
+            this.isplayer = isplayer;
+            this.capabilities = capabilities;
+            this.position = position;
+            this.velocity = velocity;
+            this.rotation = rotation;
+            this.speed = speed;
+            this.rotationSpeed = rotationSpeed;
+            AttackDamage = attackDamage;
+            AttackSpeed = attackSpeed;
+        }
+
+        public override void onUpdate()
+        {
+            base.onUpdate();
+
+        }
     }
 }

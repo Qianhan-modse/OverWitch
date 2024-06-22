@@ -7,20 +7,22 @@ using System.Threading.Tasks;
 using isiter;
 using Random = UnityEngine.Random;
 using System.Collections.Generic;
-using System.Collections;
-using Valuitem;
+using WORLD;
+using OverWitchine;
+using Items;
+using EntityPlayering;
 
 namespace Entitying
 {
-    public class Entity : MonoBehaviour
+    public class Entity
     {
         public bool isDead;
+        public bool addedToChunk;
         public bool isAttack;
 
         public bool isDamage;
         public TypeDataManager dataManager;
         public static readonly DataParameter<float> HEALTH = new DataParameter<float>("health");
-        private EntityLivingBase Base;
         public static bool isRemove = false;
 
         public bool isClearDebuff;
@@ -43,9 +45,7 @@ namespace Entitying
 
         private int entityId;
         public DamageSource velocityChanged;
-        internal object targetDeath;
-
-        private object dataManger { get { return MaxHealth; } }
+        private object dataManger => MaxHealth;
         public World world;
         public bool captureDrops=false;
         public List<EntityItem>capturedDrops=new List<EntityItem>();
@@ -59,31 +59,32 @@ namespace Entitying
         public double posX;
         public double posY;
         public double posZ;
+        public Item item;
 
         public int chunkCoordY;
         public int chunkCorrdX;
         public int chunkCoordZ;
+        private ITextCompnent textcomponentstring;
 
         public float currentHealth { set { CurrentHealth = value; } get { return CurrentHealth; } }
 
         public float value { set; get; }
 
         // Start is called before the first frame update
-        public virtual void Start()
+        public Entity()
         {
-            Base=new EntityLivingBase();
+            isDead=false;
+            isEntity=true;
+            this.maxHealth=3500f;
+            this.setMaxHealth(3500f);
+            this.setHealth(3500f);
+
+            dataManager=TypeDataManager.Instance;
         }
 
         public virtual void onEntityUpdate()
         {
             //自定义即可,这里默认返回Entity中定义的方法，可以不返回
-            if(currentHealth<=0)
-            {
-                if(Base!=null)
-                {
-                    Base.onDeath(DamageSource.ENTITY);
-                }
-            }
         }
 
         protected void setFlag(int int1,bool bool2)
@@ -98,7 +99,10 @@ namespace Entitying
                 this.dataManager.set(FLAGS,(byte)(b0&~(1<<int1)));
             }
         }
-
+        public ITextCompnent getDisplayName()
+        {
+            return textcomponentstring;
+        }
         public bool getFlag(int int2)
         {
             return((Byte)this.dataManager.get(FLAGS)&1<<int2)!=0;
@@ -151,7 +155,7 @@ namespace Entitying
 
         public virtual float getHealth()
         {
-            return this.dataManager.get(HEALTH);
+            return (float) this.dataManager.get(HEALTH);
         }
 
         public virtual void setDeath()
@@ -183,7 +187,7 @@ namespace Entitying
 
         public bool isEntityInvulnerable(DamageSource source)
         {
-            return this.invulnerable && source != DamageSource.OUT_OF_WORLD && !source.isPlayer();
+            return this.invulnerable && source != DamageSource.OUT_OF_WORLD && !source.isCreativePlayer();
         }
 
         public virtual bool isEntityAlive()
@@ -198,7 +202,7 @@ namespace Entitying
 
         internal DamageSource GetDamage()
         {
-            return new DamageSource("attack", new Entity());
+            return new DamageSource("attack");
         }
 
         public bool isRiding()
@@ -219,32 +223,12 @@ namespace Entitying
             }
         }
 
-        //主要负责移除实体的
-       /* public virtual void removeEntity(Entity entity)
-        {
-            if (entity == null)
-            {
-                Debug.LogError("错误，当前实体不能为null!");
-                return;
-            }
-
-            if (!entity.isDead || entity.currentHealth != 0)
-            {
-                if (entity.isEntity || !isRemove || entity.isDead)
-                {
-                    Entity.isRemove = true;
-                }
-            }
-            else
-            {//如果需要时间移除实体的，则调用RemoveEntity并传入字符执行移除实体
-                RemoveEntity(entity, 0.0F);
-                return;
-            }
-            return;
-        }*/
-
         public Lists<Entity>getPassengers()
         {
+            if(this.riddenByEntities==null)
+            {
+                return new EntityList(new List<Entity>());
+            }
             return (Lists<Entity>)(this.riddenByEntities.Count == 0 ? new List<Entity>() : new List<Entity>((IEnumerable<Entity>)this.riddenByEntities));
         }
         public bool isBeingRidden()
@@ -292,7 +276,7 @@ namespace Entitying
             currentHealth -= damage;
             if (currentHealth <= 0)
             {
-                onDeath(new DamageSource("attack", entity));
+                onDeath(new DamageSource("attack"));
             }
 
             return currentHealth;
@@ -306,7 +290,7 @@ namespace Entitying
             currentHealth -= damage;
             if (currentHealth <= 0)
             {
-                onDeath(new DamageSource("attack", entity));
+                onDeath(new DamageSource("attack"));
             }
 
             return (int)currentHealth;
@@ -342,7 +326,7 @@ namespace Entitying
             return GetCurrentHealth();
         }
 
-        private void setMaxHealth(float value)
+        public void setMaxHealth(float value)
         {//设置最大血量
             if (value <= 0)
             {
@@ -388,12 +372,6 @@ namespace Entitying
             throw new NotImplementedException();
         }
 
-        public virtual void Update()
-        {//为了更好的初始化内容，Update被拆分为多种，只要是含有on...Update的方法都可放在这里进行初始化并调用
-        //比如onEntityUpdate
-            onEntityUpdate();
-        }
-
         public void setPositionAndRotation(double var1,double val2,double val3,float val4,float val5)
         {
             //方法带定义
@@ -431,5 +409,9 @@ namespace Entitying
 
     public class T
     {
+        public static explicit operator T(Entity v)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

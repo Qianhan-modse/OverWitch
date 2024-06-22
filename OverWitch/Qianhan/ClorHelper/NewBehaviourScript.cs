@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Colorine;
 using UnityEngine;
 using UnityEngine.UI;
-
+//етИіР§Эт
 public class NewBehaviourScript : MonoBehaviour
 {
     public float colorChangeSpeed = 1f;

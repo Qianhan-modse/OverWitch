@@ -2,14 +2,18 @@ using DamageSourceine;
 using Entitying;
 using EntityLivingBaseing;
 using Items;
+using WORLD;
+using EntityPlayering;
 public class TrialHalberd : Item
 {
     private EntityPlayer player;
     private Entity entity;
-    public static string Name="青天化戟";
+    private World world;
+    private Item item;
+    private string name="青天化戟";
     private DamageSource source;
 
-    private bool hitEntity()
+    public override bool hitEntity()
     {
         if(!entity.isEntity)
         {
@@ -20,20 +24,43 @@ public class TrialHalberd : Item
             entity.getEntity().getHealth();
             if(entity is EntityPlayer)
             {
-                player.isplayer=true;
+                player.isplayer = true;
                 entity.setDamage(0);
                 return false;
             }
-            if(entity is EntityMob||entity is EntityLivingBase)
+            if (entity is EntityMob || entity is EntityLivingBase || !(entity is EntityPlayer))
             {
-                player.isEntityAlive();
-                source.setDamageBypassesArmor().setDamageIsAbsolute();
-                player.setDamage(5000);
-                player.getHealth();
-                player.setHealth(0);
-                player.setDeath();
+                if(!entity.isDead)
+                {
+                    entity.isDead=true;
+                    source.setDamageBypassesArmor().setDamageIsAbsolute();
+                    player.getHealth();
+                    player.setHealth(0);
+                    player.setDeath();
+                    player.onDeath(new DamageSource("TrialHalberd"));
+                }
+                world.removeEntity(entity);
             }
         }
         return true;
+    }
+    public override void Update()
+    {
+        base.Update();
+        onItemUpdate();
+
+    }
+    public override void onItemUpdate()
+    {
+        if(entity is EntityPlayer)
+        {
+            player.getHealth();
+            if(player.currentHealth<=0&&player.isDead)
+            {
+                player.setMaxHealth(player.maxHealth);
+                player.setHealth(player.maxHealth);
+                player.isDead=false;
+            }
+        }
     }
 }

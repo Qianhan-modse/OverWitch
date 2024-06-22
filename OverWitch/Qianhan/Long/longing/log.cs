@@ -375,6 +375,18 @@ public interface EventListener
 
     public class TypeDataManager : DataManager
     {
+        private static TypeDataManager instance;
+        public static TypeDataManager Instance
+        {
+            get
+            {
+                if(instance==null)
+                {
+                    instance=new TypeDataManager();
+                }
+                return instance;
+            }
+        }
         public override T get<T>(DataParameter<T> parameter)
         {
             if (typeof(T) == typeof(float))
