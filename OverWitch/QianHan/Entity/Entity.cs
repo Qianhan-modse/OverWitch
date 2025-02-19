@@ -1,0 +1,195 @@
+
+using OverWitch.QianHan.Log.network;
+using OverWitch.QianHan.Util;
+using System.Collections.Generic;
+using System.Linq;
+using Unity.VisualScripting;
+using UnityEngine;
+
+namespace OverWitch.QianHan.Entities
+{
+    /// <summary>
+    /// 实体类，表示游戏中的实体对象
+    /// 该类是所有实体的基类，不同于MonoBehaviour
+    /// </summary>
+
+    public class Entity:MonoBehaviours
+    {
+        public bool isEntity;
+        public string Name = "";
+        public double posX;
+        public double posY;
+        public double posZ;
+        private long e;
+        public double motionX;
+        public double motionY;
+        public double motionZ;
+        public bool isFallingObject;
+        public bool isDead;
+        protected bool forceDead;
+        public bool isAttacked;
+        public bool isDamaged;
+        public float Damaged;
+        public float MaxHealth;
+        public float MinHealth;
+        public float currentHealth;
+        public DataManager dataManager;
+        public static DataParameter<float> HEALTH = new DataParameter<float>("health");//生命值数据参数
+        public bool isClearDebuff;
+        public bool invulnerable;
+        public DamageSource source;
+        public bool isAi;
+        public bool isRemoved;
+        private Entity ridingEntity;
+        public int currentVlaue;
+        public int DeadTime;
+
+        public override void Start()
+        {
+            isClearDebuff = false;
+            //dataManager = new DataManager();
+            MaxHealth = 100.0F;
+            this.currentHealth = MaxHealth;
+            dataManager.set(HEALTH, currentHealth);
+            source=new DamageSource();
+            this.setHealth(this.getMaxHealth());
+            this.isDead = false;
+        }
+        private void Awake()
+        {
+            if (dataManager == null)
+            {
+                dataManager = new DataManager();
+            }
+        }
+        //当执行kill命令时
+        public virtual void onKillCommands()
+        {
+            this.setDeath();
+        }
+        //标记实体无敌
+        public virtual bool isEntityAlive()
+        {
+            this.invulnerable = true;
+            return !this.isDead;
+        }
+
+        //获取实体
+        public Entity getEntity()
+        {
+            this.isEntity = true;
+            return this;
+        }
+
+        //获取实体血量
+
+        public float getHealth()
+        {
+            if(dataManager==null)
+            {
+                Debug.LogAssertion("null");
+                Awake();
+                return 0;
+            }
+            return dataManager.get(HEALTH);
+        }
+        //当实体死亡时
+        public virtual void onKillEntity()
+        {
+            this.setDeath();
+        }
+        public bool isRiding()
+        {
+            return this.getRidingEntity() != null;
+        }
+        public Entity getRidingEntity()
+        {
+            return this.ridingEntity;
+        }
+        //设置死亡
+        public virtual void setDeath()
+        {
+            if(this.invulnerable)
+            {
+                this.invulnerable=false;
+            }
+            this.isDead = true;
+            this.forceDead = false;
+        }
+        //生命恢复逻辑
+        public virtual void RegenHealth(float amount)
+        {
+            if(currentHealth<=0)
+            {
+                return;
+            }
+            else
+            {
+                currentHealth=Mathf.Min(currentHealth+ amount,MaxHealth);
+                dataManager.set(HEALTH, currentHealth);
+            }
+        }
+        //设置实体最大生命值
+       /* public void setMaxHealth(float value)
+        {
+            if (value <= 0)
+            {
+                Debug.LogError("最大生命值不能为负数或0");
+                return;
+            }
+            if (dataManager == null)
+            {
+                Debug.LogWarning("dataManager为null，正在重新初始化");
+                this.Start();
+                Debug.Log("已完成初始化");
+            }
+            if (dataManager!=null)
+            {
+                MaxHealth = value;
+                currentHealth = MaxHealth;
+                dataManager.set(HEALTH, MaxHealth);
+                Debug.Log("已设置目标最大生命值");
+            }
+        }*/
+        //获取实体最大生命值
+        public float getMaxHealth()
+        {
+            if (dataManager != null)
+            {
+                //Debug.Log("dataManager不为null，已经获取到实体的最大生命值");
+                MaxHealth = dataManager.get(HEALTH);
+                if (MaxHealth < 0)
+                {
+                    Debug.Log("最大生命值为0，无法获取已经为零或者小于零的生命值");
+                }
+                return MaxHealth;
+            }
+            return MaxHealth;
+        }
+
+        //可被覆盖的伤害实体的逻辑
+        public virtual bool attackEntityForm(DamageSource source,float value)
+        {
+            return false;
+        }
+        //生命值
+        public float Health(float value)
+        {
+            setHealth(value);
+            return getHealth();
+        }
+        //设置生命值
+        public void setHealth(float value)
+        {
+            if(dataManager==null)
+            {
+                Awake();
+                return;
+            }
+            float clampedValue = Mathf.Clamp(value, 0, MaxHealth);
+            this.dataManager.set(HEALTH,clampedValue);
+        }
+        //内置类
+        public class T { }
+    }
+}

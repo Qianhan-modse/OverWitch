@@ -1,0 +1,10 @@
+F:\Unity\IsDemo\Assets\OverWitch\QianHan\NetWork\ConsoleApp1\ConsoleApp1\obj\Debug\ConsoleApp1.csproj.AssemblyReference.cache
+F:\Unity\IsDemo\Assets\OverWitch\QianHan\NetWork\ConsoleApp1\ConsoleApp1\obj\Debug\ConsoleApp1.csproj.CoreCompileInputs.cache
+F:\Unity\IsDemo\Assets\OverWitch\QianHan\NetWork\ConsoleApp1\ConsoleApp1\bin\Debug\ConsoleApp1.exe
+F:\Unity\IsDemo\Assets\OverWitch\QianHan\NetWork\ConsoleApp1\ConsoleApp1\bin\Debug\ConsoleApp1.pdb
+F:\Unity\IsDemo\Assets\OverWitch\QianHan\NetWork\ConsoleApp1\ConsoleApp1\obj\Debug\ConsoleApp1.exe
+F:\Unity\IsDemo\Assets\OverWitch\QianHan\NetWork\ConsoleApp1\ConsoleApp1\obj\Debug\ConsoleApp1.pdb
+F:\Unity\IsDemo\Assets\OverWitch\QianHan\NetWork\ConsoleApp1\ConsoleApp1\bin\Debug\ConsoleApp1.exe.manifest
+F:\Unity\IsDemo\Assets\OverWitch\QianHan\NetWork\ConsoleApp1\ConsoleApp1\bin\Debug\ConsoleApp1.application
+F:\Unity\IsDemo\Assets\OverWitch\QianHan\NetWork\ConsoleApp1\ConsoleApp1\obj\Debug\ConsoleApp1.exe.manifest
+F:\Unity\IsDemo\Assets\OverWitch\QianHan\NetWork\ConsoleApp1\ConsoleApp1\obj\Debug\ConsoleApp1.application
