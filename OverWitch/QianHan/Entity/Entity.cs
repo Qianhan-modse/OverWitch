@@ -1,6 +1,7 @@
 
 using OverWitch.QianHan.Log.network;
 using OverWitch.QianHan.Util;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.VisualScripting;
@@ -13,7 +14,7 @@ namespace OverWitch.QianHan.Entities
     /// 该类是所有实体的基类，不同于MonoBehaviour
     /// </summary>
 
-    public class Entity:MonoBehaviours
+    public class Entity:MonoBehaviour
     {
         public bool isEntity;
         public string Name = "";
@@ -34,7 +35,8 @@ namespace OverWitch.QianHan.Entities
         public float MinHealth;
         public float currentHealth;
         public DataManager dataManager;
-        public static DataParameter<float> HEALTH = new DataParameter<float>("health");//生命值数据参数
+        //public static readonly DataParameter<float> HEALTH = new DataParameter<float>("health"); 
+        public DataParameter<float> HEALTH = new DataParameter<float>("health");
         public bool isClearDebuff;
         public bool invulnerable;
         public DamageSource source;
@@ -44,23 +46,37 @@ namespace OverWitch.QianHan.Entities
         public int currentVlaue;
         public int DeadTime;
 
-        public override void Start()
-        {
-            isClearDebuff = false;
-            //dataManager = new DataManager();
-            MaxHealth = 100.0F;
-            this.currentHealth = MaxHealth;
-            dataManager.set(HEALTH, currentHealth);
-            source=new DamageSource();
-            this.setHealth(this.getMaxHealth());
-            this.isDead = false;
-        }
-        private void Awake()
+        public virtual void Awake()
         {
             if (dataManager == null)
             {
                 dataManager = new DataManager();
+                Debug.Log("DataManager has been initialized.");
             }
+        }
+        public virtual void Update()
+        {
+
+        }
+        public virtual void Start()
+        {
+            dataManager.registerKey(HEALTH);
+            isClearDebuff = false;
+            //dataManager = new DataManager();
+            MaxHealth = 100.0F;
+            this.currentHealth = MaxHealth;
+            /*Debug.Log($"Checking if HEALTH exists in DataManager: {HEALTH.Key}");
+            if (!dataManager.dataEntries.ContainsKey(HEALTH.Key))
+            {
+                Debug.Log("HEALTH key not found, initializing...");
+                dataManager.set(HEALTH, MaxHealth);
+            }
+            Debug.Log($"Current Health from DataManager: {dataManager.get(HEALTH)}");*/
+            source =new DamageSource();
+            this.dataManager.set(HEALTH, 100.0F);
+            this.setHealth(currentHealth);
+            this.dataManager.get(HEALTH, currentHealth);
+            this.isDead = false;
         }
         //当执行kill命令时
         public virtual void onKillCommands()
@@ -91,7 +107,7 @@ namespace OverWitch.QianHan.Entities
                 Awake();
                 return 0;
             }
-            return dataManager.get(HEALTH);
+            return dataManager.get(HEALTH,currentHealth);
         }
         //当实体死亡时
         public virtual void onKillEntity()
@@ -114,7 +130,8 @@ namespace OverWitch.QianHan.Entities
                 this.invulnerable=false;
             }
             this.isDead = true;
-            this.forceDead = false;
+            this.forceDead = true;
+            Debug.Log($"{this.name} is now marked as dead (isDead: {this.isDead}, forceDead: {this.forceDead})");
         }
         //生命恢复逻辑
         public virtual void RegenHealth(float amount)
@@ -130,7 +147,7 @@ namespace OverWitch.QianHan.Entities
             }
         }
         //设置实体最大生命值
-       /* public void setMaxHealth(float value)
+       public void setMaxHealth(float value)
         {
             if (value <= 0)
             {
@@ -141,6 +158,11 @@ namespace OverWitch.QianHan.Entities
             {
                 Debug.LogWarning("dataManager为null，正在重新初始化");
                 this.Start();
+                if(dataManager==null)
+                {
+                    Debug.LogError("初始化失败，dataManager仍为null");
+                    return;
+                }
                 Debug.Log("已完成初始化");
             }
             if (dataManager!=null)
@@ -150,14 +172,14 @@ namespace OverWitch.QianHan.Entities
                 dataManager.set(HEALTH, MaxHealth);
                 Debug.Log("已设置目标最大生命值");
             }
-        }*/
+        }
         //获取实体最大生命值
         public float getMaxHealth()
         {
             if (dataManager != null)
             {
                 //Debug.Log("dataManager不为null，已经获取到实体的最大生命值");
-                MaxHealth = dataManager.get(HEALTH);
+                MaxHealth = dataManager.get(HEALTH,currentHealth);
                 if (MaxHealth < 0)
                 {
                     Debug.Log("最大生命值为0，无法获取已经为零或者小于零的生命值");
@@ -188,6 +210,13 @@ namespace OverWitch.QianHan.Entities
             }
             float clampedValue = Mathf.Clamp(value, 0, MaxHealth);
             this.dataManager.set(HEALTH,clampedValue);
+        }
+        //方便调用的GC，被限制使用
+        public void GCCollear()
+        {
+            System.GC.Collect();
+            System.GC.WaitForPendingFinalizers();
+            System.GC.Collect();
         }
         //内置类
         public class T { }
