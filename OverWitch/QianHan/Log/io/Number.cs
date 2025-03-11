@@ -41,7 +41,7 @@ namespace OverWitch.QianHan.Log.network
 
         public T GetValue()
         {
-            return (T)value;
+            return value;
         }
 
         public void setValue(T newValue)
@@ -59,6 +59,8 @@ namespace OverWitch.QianHan.Log.network
     public class DataManager
     {
         public Dictionary<string, object> dataEntries = new Dictionary<string, object>();
+        public static DataParameter<float> HEALTH = new DataParameter<float>("health"); // 确保这行存在并初始化
+
 
         public DataManager(Dictionary<string, object> dataEntries)
         {
@@ -88,18 +90,41 @@ namespace OverWitch.QianHan.Log.network
         // 通用的 set 方法
         public void set<T>(DataParameter<T> parameter, T value)
         {
+            Debug.Log($"Setting value for {parameter.Key}: {value}");
             DataEntry<T> dataEntry = this.getEntry(parameter);
+
+            // 如果新值和旧值不同，进行更新
             if (!EqualityComparer<T>.Default.Equals(value, dataEntry.GetValue()))
             {
+                var entry = getEntry(parameter);
                 dataEntry.setValue(value);
                 this.NotifyDataManagerChange(parameter);
                 dataEntry.setDirty(true);
+                Debug.Log($"Successfully set {parameter.Key} to {value}");
+            }
+            else
+            {
+                Debug.Log($"No change for {parameter.Key}, value is the same: {value}");
             }
         }
-        public T get<T>(DataParameter<T> parameter)
+        public void registerKey<T>(DataParameter<T>parameter)
         {
+            if(!dataEntries.ContainsKey(parameter.Key))
+            {
+                var entry = new DataEntry<T>(default(T));
+                dataEntries.Add(parameter.Key, entry);
+                Debug.Log($"Key'{parameter.Key}'以显示注册");
+            }
+        }
+
+        public T get<T>(DataParameter<T> parameter,T value)
+        {
+            // 在获取数据前打印调试信息
+            Debug.Log($"Attempting to get value for {parameter.Key}");
+
             if (dataEntries.TryGetValue(parameter.Key, out object entry))
             {
+                Debug.Log($"Successfully retrieved value for {parameter.Key}: {((DataEntry<T>)entry).GetValue()}");
                 return ((DataEntry<T>)entry).GetValue();
             }
             else
@@ -110,7 +135,7 @@ namespace OverWitch.QianHan.Log.network
         }
         private DataEntry<T> getEntry<T>(DataParameter<T> parameter)
         {
-            if (dataEntries.ContainsKey(parameter.Key))
+            /*if (dataEntries.ContainsKey(parameter.Key))
             {
                 Debug.Log("在这里，" + "");
                 return (DataEntry<T>)dataEntries[parameter.Key];
@@ -118,6 +143,18 @@ namespace OverWitch.QianHan.Log.network
             else
             {
                 Debug.Log("这个问题{parameter.key},DataEntry的else部分");
+                var newEntry = new DataEntry<T>(default(T));
+                dataEntries.Add(parameter.Key, newEntry);
+                return newEntry;
+            }*/
+            if(dataEntries.TryGetValue(parameter.Key,out object entry))
+            {
+                Debug.Log($"访问已存在的键:{parameter.Key}");
+                return (DataEntry<T>)entry;
+            }
+            else
+            {
+                Debug.LogWarning($"隐式创建新键:{parameter.Key}");
                 var newEntry = new DataEntry<T>(default(T));
                 dataEntries.Add(parameter.Key, newEntry);
                 return newEntry;
