@@ -5,14 +5,20 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using static UnityEngine.EventSystems.EventTrigger;
 /// <summary>
 /// 因为我真正的World类涉及Unity内核逻辑，因此这个是基于真正的World类修改版
 /// World，是掌管场景的基类，原本的是不继承MonoBehaviour但可以直接在GameObject等Untiy上挂载并使用的
 /// </summary>
-public class World : MonoBehaviours
+public class World : MonoBehaviour
 {
     private List<Entity> entities=new List<Entity>();
     private SceneManager sceneManager;
+    private int tick;
+    private int GCCounter;
+    private EntityLivingBase livingBase;
+    private Entity entity;
+
     private void AddEntity(Entity entity)
     {
         entities.Add(entity);
@@ -22,7 +28,7 @@ public class World : MonoBehaviours
         //更新后的逻辑,根本用不着优化去浪费时间资源
         if (entity != null)//为了防止移除已经被标记为null的实体对象而产生错误加入了这个判断
         {
-            if (entity.isAi && !entity.isDead || entity.isDead)
+            if (entity.isAi ||entity.isDead)
                 //这三条分别是表示当前实体对象为AI、被标记为死亡和非死亡，因为移除实体时会自动标记为死亡
             {
                 entity.isDead = true;//标记实体为死亡状态
@@ -44,45 +50,76 @@ public class World : MonoBehaviours
                 {
                     child.gameObject.SetActive(false);//禁用子对象
                 }
-                entity = null;//标记为null解除该实体的引用，避免占用资源
+                DestroyImmediate(entity);
                 System.GC.Collect();//强制GC回收无引用对象
-                //判断实体类型是否为生物
-                if (entity is EntityLivingBase)
+                //进行对生物类型的转换
+                if(entity as EntityLivingBase)
                 {
-                    //强制转换，虽然是无意义的但为了严谨
-                    EntityLivingBase entityLiving = (EntityLivingBase)entity;
-                    //如果不为null
-                    if (entityLiving != null)
+                    removeEntityLivingBase(livingBase);
+                }
+                entity = null;//标记为null解除该实体的引用，避免占用资源
+            }
+        }
+    }
+    //私有方法，用于对抗生物实体类型
+    private bool removeEntityLivingBase(EntityLivingBase livingBase)
+    {
+        Entity entity = livingBase;
+        if (entity is EntityLivingBase)
+        {
+            //强制转换，虽然是无意义的但为了严谨
+            EntityLivingBase entityLiving = (EntityLivingBase)entity;
+            //如果不为null
+            if (entityLiving != null)
+            {
+                //如果被标记为死亡或者移除
+                if (entityLiving.isDead && entityLiving.isRemoved)
+                {
+                    Collider collider = livingBase.GetComponent<Collider>();
+                    //从列表移除，将其标记为无效
+                    this.entities.Remove(entityLiving);
+                    //隐藏生物、禁用碰撞、解放其他调用的实体等等
+                    this.gameObject.SetActive(false);
+                    entityLiving.enabled = false;
+                    collider.enabled = false;
+                    DisableAllComponents(entityLiving);
+                    //解除其他代码对当前实体的引用，方便后续垃圾处理
+                    entityLiving = null;
+                    //销毁生物，一般情况下销毁后后面的CG不会生效，即使生效也不会参与垃圾回收
+                    DestroyImmediate(entityLiving);
+                    entityLiving.isRemoved = true;//标记为已移除
+                    if (!entityLiving.isRemoved)//如果没有触发移除实体时调用GC强制回收垃圾
                     {
-                        //如果被标记为死亡或者移除
-                        if (entityLiving.isDead && entityLiving.isRemoved)
-                        {
-                            //从列表移除，将其标记为无效
-                            this.entities.Remove(entityLiving);
-                            //隐藏生物、禁用碰撞、解放其他调用的实体等等
-                            this.gameObject.SetActive(false);
-                            entityLiving.enabled = false;
-                            collider.enabled = false;
-                            DisableAllComponents(entityLiving);
-                            //解除其他代码对当前实体的引用，方便后续垃圾处理
-                            entityLiving = null;
-                            //销毁生物，一般情况下销毁后后面的CG不会生效，即使生效也不会参与垃圾回收
-                            DestroyImmediate(entityLiving);
-                            entityLiving.isRemoved = true;//标记为已移除
-                            if (!entityLiving.isRemoved)//如果没有触发移除实体时调用GC强制回收垃圾
-                            {
-                                //强制性回收垃圾，防止无法正常销毁
-                                System.GC.Collect();
-                                entityLiving.isDestroyed = true;//标记为以销毁
-                                entityLiving.isRemoved = true;//标记为已移除
-                                entityLiving.isDead = true;//标记为已死亡防止参与游戏更新
-                                entityLiving = null;//标记为null表示解除引用
-                            }
-                        }
+                        //强制性回收垃圾，防止无法正常销毁
+                        System.GC.Collect();
+                        entityLiving.isDestroyed = true;//标记为以销毁
+                        entityLiving.isRemoved = true;//标记为已移除
+                        entityLiving.isDead = true;//标记为已死亡防止参与游戏更新
+                        entityLiving = null;//标记为null表示解除引用
                     }
                 }
             }
         }
+        return true;
+    }
+    public bool removeEntityAll(List<Entity>entities)
+    {
+        foreach (EntityLivingBase livingBase in entities)
+        {
+            if(livingBase.isDead||livingBase.isRemoved)
+            {
+                removeEntityLivingBase(livingBase);
+            }
+            if(entity.isDead||entity.isRemoved)
+            {
+                removeEntity(entity);
+                if(entities.Contains(entity))
+                {
+                    entities.Remove(entity);
+                }
+            }
+        }
+        return true;
     }
     private void DisableAllComponents(Entity entity)
     {
@@ -138,12 +175,22 @@ public class World : MonoBehaviours
             // 移除死亡的实体
             entities.RemoveAll(e => e.isDead);
         }
+        for(tick=0;tick<3000;tick++)
+        {
+            GCCounter++;
+            if(GCCounter==5)
+            {
+                GC.Collect();//首先GC清理
+                GC.WaitForPendingFinalizers();//等待携程结束
+                GC.Collect();//再来GC清理
+                GCCounter = 0;
+            }
+        }
     }
-    public override void Update()
+    /*public virtual void Update()
     {
-        base.Update();
         onWorldUpdate();
-    }
+    }*/
     public void spawnEntity(Entity entity)
     {
         //这里是生成实体的逻辑
