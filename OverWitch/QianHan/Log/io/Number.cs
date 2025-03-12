@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
+using static OverWitch.QianHan.Entities.Entity;
 
 namespace Assets.OverWitch.QianHan.Log.io
 {
@@ -117,10 +119,10 @@ namespace OverWitch.QianHan.Log.network
             }
         }
 
-        public T get<T>(DataParameter<T> parameter,T value)
+        public T get<T>(DataParameter<T> parameter)
         {
             // 在获取数据前打印调试信息
-            Debug.Log($"Attempting to get value for {parameter.Key}");
+            /*Debug.Log($"Attempting to get value for {parameter.Key}");
 
             if (dataEntries.TryGetValue(parameter.Key, out object entry))
             {
@@ -131,7 +133,44 @@ namespace OverWitch.QianHan.Log.network
             {
                 Debug.LogWarning($"Key '{parameter.Key}' not found.");
                 return default(T); // 返回T类型的默认值
+            }*/
+            Debug.Log($"尝试获取键值：{parameter.Key}|当前数据条目:{dataEntries.Count}");
+            //访问字典
+            if(dataEntries.TryGetValue(parameter.Key,out object entry))
+            {
+                if(entry is DataEntry<T>typedEntry)
+                {
+                    Debug.Log($"成功获取键值:{parameter.Key}={typedEntry.GetValue()}");
+                    return typedEntry.GetValue();
+                }
+                else
+                {
+                    Debug.Log($"类型不匹配，键{parameter.Key}的类型为{entry.GetType()}而非{typeof(DataEntry<T>)}");
+                    HandleTypeMismatch(parameter.Key, typeof(T));
+                    return default;//这里是default隶属于T，因此是简化的
+                }
             }
+            Debug.LogWarning($"键{parameter.Key}不存在，正在进行修复");
+            var newEntry = new DataEntry<T>(default(T));
+            dataEntries.Add(parameter.Key, newEntry);
+            Debug.Log($"新建条目栈轨迹：\n{Environment.StackTrace}");
+            return newEntry.GetValue();
+        }
+        protected void HandleTypeMismatch(string key,Type expectedType)
+        {
+            var catualEntry = dataEntries[key];
+            try
+            {
+                dynamic converted = Convert.ChangeType(catualEntry, expectedType);
+                dataEntries[key] = new DataEntry<T>(converted);
+                Debug.LogWarning($"以强制转换{key}到{expectedType}");
+            }
+            catch
+            {
+                dataEntries[key] = new DataEntry<T>(default(T));
+                Debug.LogError($"无法转换{key}，已重置为默认值");
+            }
+            GlobalEventSystem.NotifyDataCorruption(key, expectedType);
         }
         private DataEntry<T> getEntry<T>(DataParameter<T> parameter)
         {
@@ -178,6 +217,15 @@ namespace OverWitch.QianHan.Log.network
             return new ExplicitDataManager(v);
         }
     }
+
+    internal class GlobalEventSystem
+    {
+        internal static void NotifyDataCorruption(string key, Type expectedType)
+        {
+            throw new NotImplementedException("键异常");
+        }
+    }
+
     public class ExplicitDataManager
     {
         private DataManager dataManager;

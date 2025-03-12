@@ -34,5 +34,7 @@ namespace Assets.OverWitch.QianHan.Log.io
         void onItemStart(ItemTool item);
         //实体初始化
         void onEntityStart();
+
+        void onTickUpdate();
     }
 }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Assets.OverWitch.QianHan.Log.io
 {
-    internal interface Serializable
+    public interface Serializable
     {
     }
 }

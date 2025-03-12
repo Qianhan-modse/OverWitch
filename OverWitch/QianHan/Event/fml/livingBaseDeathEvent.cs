@@ -22,6 +22,10 @@ namespace EntityLivingBaseEvent
         }
         public void setCanceled(bool value)
         {
+            if(isGlobalMark==true)
+            {
+                return;
+            }
             this.isCanceled = value;
         }
     }

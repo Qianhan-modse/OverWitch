@@ -43,15 +43,18 @@ namespace Assets
         // Update is called once per frame
         void Update()
         {
-            if (Input.GetKey(KeyCode.W))
+            for (Tick = 0; Tick < 300; Tick++)
             {
-                Debug.Log("你已按下W");
-                livingBase.attackEntityForm(new DamageSource("测试"), livingBase.getHealth());
-                Debug.Log("已造成伤害");
-                if (livingBase.getHealth() >= 0)
+                if (Input.GetKey(KeyCode.W))
                 {
-                    livingBase.onDeath(DamageSource.DROWN);
-                    Debug.Log("目标已经死亡");
+                    Debug.Log("你已按下W");
+                    livingBase.attackEntityForm(new DamageSource("测试"), livingBase.getHealth());
+                    Debug.Log("已造成伤害");
+                    if (livingBase.getHealth() >= 0)
+                    {
+                        livingBase.onDeath(DamageSource.DROWN);
+                        Debug.Log("目标已经死亡");
+                    }
                 }
             }
         }

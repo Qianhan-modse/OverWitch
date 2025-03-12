@@ -7,10 +7,8 @@ using UnityEngine;
 using Assets.OverWitch.QianHan.Event.fml;
 using Assets.OverWitch.QianHan.Items;
 using Assets.OverWitch.QianHan.Util;
-using Assets.OverWitch.QianHan.Log;
 using ItemEntityes;
 using System;
-using System.Collections.Generic;
 using Tyess;
 
 /// <summary>
@@ -21,7 +19,6 @@ public abstract class EntityLivingBase : Entity
     public Entity entity;
     public bool isDestroyed;
     private int scoreValue;
-    public World world;
     public float Armores;
     public float Defense;
     public float Dodge;
@@ -32,33 +29,37 @@ public abstract class EntityLivingBase : Entity
     private float MinDamage;
     private float damage;
     private bool dataManage;
-    protected bool isSkil;//是否为必中类型的技能
+    public bool isSkil;//是否为必中类型的技能
     public static readonly DataParameter<float> Damage= new DataParameter<float>("damage");
     private DamageSource Source;
+    protected int GCClocted;
+
+    public int Tick;
+
     //private List<DataManager>();//未完成
     public virtual void onEntityStart()
     {
         dataManager=new DataManager();
         entity = this;
+        dataManager.registerKey(Damage);
+        dataManager.set(Damage, 0.0F);
     }
     public override void Start()
     {
-        entity = FindObjectOfType<EntityPlayer>();
+        base.Start();
         onEntityStart();
-        dataManage=dataManager;//这里是显式转换，为了保证调用的正确性，如果是null方便后续的return或者重新回调初始化
-        entity.Start();
+        dataManage = (dataManager != null);
+        entity =GetComponent<EntityPlayer>();
         if (entity == null)
         {
+            Debug.LogError("EntityPlayer 组件未找到！请检查 GameObject 是否挂载了 EntityPlayer。");
+            entity = this;
             onEntityStart();
-            if(dataManager==null&&dataManage==false)
-            {
-                dataManager = new DataManager();
-                dataManage = true;
-            }
-            else if(dataManager==null&&dataManage==false)
-            {
-                entity.Start();
-            }
+
+        }
+        if(dataManager==null)
+        {
+            Debug.LogError("DataManager初始化失败");
             return;
         }
         
@@ -97,7 +98,7 @@ public abstract class EntityLivingBase : Entity
         }
         else
         {
-            throw illegalArgumentException;
+            return null;
         }
     }
     public abstract ItemStack getItemStackFromSlot(EntityEquipmentSlot slotIn);
@@ -140,24 +141,28 @@ public abstract class EntityLivingBase : Entity
 
     public override bool attackEntityForm(DamageSource source, float value)
     {
-        if (!entity.invulnerable || !entity.isEntityAlive()&&this.isEntityIsDeadOrAlive())
+        //if (!entity.invulnerable/* 这里是如果实体未被标记为无敌 */ || !entity.isEntityAlive()/* 这里不是负责是否存活而是管理实体是否是无敌状态 */&&this.isEntityIsDeadOrAlive()/* 这里是如果实体还活着并不是死亡 */)
+        if (!entity.invulnerable && !entity.isDead)
         {
             // 计算并更新剩余生命值
             float currentHealth = Mathf.Max(entity.getHealth() - value, 0);
             entity.setHealth(currentHealth);
+
+            // 输出日志以便调试
+            Debug.Log("Entity Health: " + currentHealth);
+
+            // 检查生命值是否为0或以下，如果是，则设置为死亡状态
+            if (currentHealth <= 0)
+            {
+                entity.setDeath();
+                Debug.Log("Entity has died from: " + source.getDamageType());
+                onDeath(source); // 调用死亡处理,这里可以不使用
+                return true;
+            }
         }
-        else { return false; }
-
-        // 输出日志以便调试
-        Debug.Log("Entity Health: " + currentHealth);
-
-        // 检查生命值是否为0或以下，如果是，则设置为死亡状态
-        if (currentHealth <= 0)
+        else
         {
-            entity.setDeath();
-            Debug.Log("Entity has died from: " + source.getDamageType());
-            onDeath(source); // 调用死亡处理,这里可以不使用
-            return true;
+            return false;
         }
         return false;
     }
@@ -208,7 +213,7 @@ public abstract class EntityLivingBase : Entity
                 {
                     Debug.Log("该实体已被确定强制死亡");
                     entityLivingBase.setDeath();
-                    entityLivingBase.world.removeEntity(entityLivingBase);//强制移除实体确定不会复活
+                    entityLivingBase.world.removeEntityLivingBase(entityLivingBase);//强制移除实体确定不会复活
                 }
                 // 如果该生物有掉落物时
                 this.spawnItemEntity(entity);
@@ -229,7 +234,7 @@ public abstract class EntityLivingBase : Entity
 
     public virtual void TakeDamage(float amount)
     {
-        //如果实体未被标记为无敌状态或者实体并不处于无敌状态时
+        //如果实体未被标记为无敌或者实体并不处于无敌状态时
         if (!entity.invulnerable &&! entity.isEntityAlive())
         {
             // 处理受到的伤害
@@ -259,7 +264,7 @@ public abstract class EntityLivingBase : Entity
         if(entity.isDead)
         {
             EntityLivingBase livingBase = (EntityLivingBase)entity;
-            livingBase.world.removeEntity(livingBase);
+            livingBase.world.removeEntityLivingBase(livingBase);
             return false;
         }
         return!this.isDead;
@@ -290,18 +295,14 @@ public abstract class EntityLivingBase : Entity
     //当实体更新时调用这个逻辑
     public virtual void onEntityUpdate()
     {
-        //逻辑尚未完成
-        if(this!=null)
+        
+        Tick++;
+        const int GC_CALL_INTERVAL = 30000;
+        //这是必要的
+        if(Tick>=GC_CALL_INTERVAL)
         {
-            if(this.getHealth() <= 0)
-            {
-                this.onDeath(DamageSource.DROWN);
-            }
-            else
-            {
-                this.getHealth();
-                //这里是正常的生存逻辑
-            }
+            GCCollear();
+            Tick = 0;
         }
 
     }

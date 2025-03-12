@@ -15,7 +15,6 @@ namespace ItemEntityes
         private float lifetime;  // 掉落物的生命周期
         private float maxLifetime = 300f;  // 最大生存时间，例如 30 秒
         private bool dead;  // 是否已死亡
-        private World world;  // 所在世界
 
         public override void Start()
         {
@@ -31,7 +30,7 @@ namespace ItemEntityes
             if (dead)
             {
                 // 如果物品已死亡，移除实体
-                world?.removeEntity(this);  // 使用空安全操作符
+                World.removeEntity(this);  // 使用空安全操作符
             }
             else
             {
@@ -42,7 +41,7 @@ namespace ItemEntityes
                 if (lifetime > maxLifetime)
                 {
                     dead = true;
-                    world?.removeEntity(this);  // 移除实体
+                    World.removeEntity(this);  // 移除实体
                 }
             }
         }
@@ -52,7 +51,7 @@ namespace ItemEntityes
         {
             if (dead)
             {
-                world?.removeEntity(this);  // 移除实体
+                World.removeEntity(this);  // 移除实体
             }
         }
 

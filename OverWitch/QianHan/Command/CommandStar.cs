@@ -1,22 +1,28 @@
 using System;
+using EntityLivingBaseEvent;
 using OverWitch.QianHan.Entities;
 using OverWitch.QianHan.Log.network;
+using OverWitch.QianHan.Util;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Commaand
 {
-    public class CommandStar : MonoBehaviours
+    public class CommandStar : MonoBehaviour
     {
         public InputField inputField;
         public Button button;
         private Entity entity;
+        private DamageSource source;
+        public EntityPlayer player;
         // Start is called before the first frame update
-        public override void Start()
+        public virtual void Start()
         {
             // 绑定按钮点击事件到 ExecuteCommand 方法
             button.onClick.AddListener(OnButtonClick);
             inputField.onEndEdit.AddListener(ExecuteCommand);
+            source = new DamageSource();
+            player = GetComponent<EntityPlayer>();
         }
 
         // 当按钮点击时调用
@@ -59,7 +65,7 @@ namespace Commaand
                         if (entity != livingBase.GetComponent<Entity>())
                         {
                             livingBase = entity as EntityLivingBase;
-                            if (livingBase != null)
+                            if (livingBase != null&&livingBase.invulnerable)
                             {
                                 livingBase.onKillCommands();
                             }
@@ -68,12 +74,8 @@ namespace Commaand
                 }
                 Debug.Log("所有实体已被杀死");
             }
-
-
             else if (commandParts.Length > 1 && commandParts[1] == "@p")
             {
-                if (entity is EntityLivingBase)
-                {
                     EntityLivingBase livingBase = (EntityLivingBase)entity;
                     if (livingBase is EntityPlayer)
                     {
@@ -84,7 +86,6 @@ namespace Commaand
                         }
                     }
                     Debug.Log("玩家已被击杀");
-                }
             }
             else
             {

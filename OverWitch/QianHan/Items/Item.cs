@@ -2,12 +2,11 @@
 using Assets.OverWitch.QianHan.Util;
 using ItemEntityes;
 using OverWitch.QianHan.Entities;
-using OverWitch.QianHan.Log.network;
-using System;
+using UnityEngine;
 
 namespace OverWitch.QianHan.Items
 {
-    public class Item:MonoBehaviours
+    public class Item:MonoBehaviour
     {
         protected int maxDamage;//最大耐久
         protected int maxStackSize = 64;//最大堆叠

@@ -1,8 +1,12 @@
+using Assets.OverWitch.QianHan.Log.io.NewWork;
 using OverWitch.QianHan.Entities;
 using OverWitch.QianHan.Log.network;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
 using Unity.VisualScripting;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using static UnityEngine.EventSystems.EventTrigger;
@@ -12,18 +16,18 @@ using static UnityEngine.EventSystems.EventTrigger;
 /// </summary>
 public class World : MonoBehaviour
 {
-    private List<Entity> entities=new List<Entity>();
+    public static List<Entity> entities=new List<Entity>();
     private SceneManager sceneManager;
     private int tick;
     private int GCCounter;
-    private EntityLivingBase livingBase;
-    private Entity entity;
+    private static EntityLivingBase livingBase;
+    private static Entity entity;
 
     private void AddEntity(Entity entity)
     {
         entities.Add(entity);
     }
-    public void removeEntity(Entity entity)
+    public static void removeEntity(Entity entity)
     {
         //更新后的逻辑,根本用不着优化去浪费时间资源
         if (entity != null)//为了防止移除已经被标记为null的实体对象而产生错误加入了这个判断
@@ -50,19 +54,20 @@ public class World : MonoBehaviour
                 {
                     child.gameObject.SetActive(false);//禁用子对象
                 }
-                DestroyImmediate(entity);
-                System.GC.Collect();//强制GC回收无引用对象
                 //进行对生物类型的转换
                 if(entity as EntityLivingBase)
                 {
-                    removeEntityLivingBase(livingBase);
+                    entity.world.removeEntityLivingBase(livingBase);
                 }
                 entity = null;//标记为null解除该实体的引用，避免占用资源
+                entity.removeEntityType();
+                //再一次回调GC，处理刚释放的对象
+                entity.world.GCClose();
             }
         }
     }
     //私有方法，用于对抗生物实体类型
-    private bool removeEntityLivingBase(EntityLivingBase livingBase)
+    public bool removeEntityLivingBase(EntityLivingBase livingBase)
     {
         Entity entity = livingBase;
         if (entity is EntityLivingBase)
@@ -72,56 +77,60 @@ public class World : MonoBehaviour
             //如果不为null
             if (entityLiving != null)
             {
-                //如果被标记为死亡或者移除
-                if (entityLiving.isDead && entityLiving.isRemoved)
+                //如果被标记为死亡或者移除,原先为&&不成立
+                if (entityLiving.isDead || entityLiving.isRemoved)
                 {
                     Collider collider = livingBase.GetComponent<Collider>();
                     //从列表移除，将其标记为无效
-                    this.entities.Remove(entityLiving);
+                    entities.Remove(entityLiving);
                     //隐藏生物、禁用碰撞、解放其他调用的实体等等
-                    this.gameObject.SetActive(false);
+                    entity.gameObject.SetActive(false);
                     entityLiving.enabled = false;
                     collider.enabled = false;
                     DisableAllComponents(entityLiving);
                     //解除其他代码对当前实体的引用，方便后续垃圾处理
                     entityLiving = null;
-                    //销毁生物，一般情况下销毁后后面的CG不会生效，即使生效也不会参与垃圾回收
-                    DestroyImmediate(entityLiving);
+                    /*销毁生物，一般情况下销毁后后面的CG不会生效，即使生效也不会参与垃圾回收
+                     * 该方法已被弃用，完全不用
+                    DestroyImmediate(entityLiving);*/
                     entityLiving.isRemoved = true;//标记为已移除
+                    entityLiving.removeEntityType();
+                    //为了防止回收不及时再一次回调GC
+                    GCClose();
                     if (!entityLiving.isRemoved)//如果没有触发移除实体时调用GC强制回收垃圾
-                    {
-                        //强制性回收垃圾，防止无法正常销毁
-                        System.GC.Collect();
+                    { 
                         entityLiving.isDestroyed = true;//标记为以销毁
                         entityLiving.isRemoved = true;//标记为已移除
                         entityLiving.isDead = true;//标记为已死亡防止参与游戏更新
                         entityLiving = null;//标记为null表示解除引用
+                        GCClose();
                     }
                 }
             }
         }
         return true;
     }
-    public bool removeEntityAll(List<Entity>entities)
+    public static bool removeEntityAll(List<Entity>entities)
     {
-        foreach (EntityLivingBase livingBase in entities)
+        if (entities == null) return false;
+        var processingList = new List<Entity>(entities.Where(e => !e.isInRemovingProcess && (e.isDead || e.isRemoved)));
+        foreach(var entity in processingList)
         {
-            if(livingBase.isDead||livingBase.isRemoved)
+            try
             {
-                removeEntityLivingBase(livingBase);
-            }
-            if(entity.isDead||entity.isRemoved)
-            {
+                entity.isInRemovingProcess = true;
                 removeEntity(entity);
                 if(entities.Contains(entity))
                 {
                     entities.Remove(entity);
+                    entity.world.GCClose();
                 }
             }
+            finally { entity.isInRemovingProcess = false; }
         }
         return true;
     }
-    private void DisableAllComponents(Entity entity)
+    private static void DisableAllComponents(Entity entity)
     {
         Component[] components = entity.GetComponents<Component>();
 
@@ -142,11 +151,19 @@ public class World : MonoBehaviour
                 {
                     colliderComponent.enabled = false;  // 禁用碰撞器
                 }
-                else if(component is Animation animation&&component is Animator animator)
+                else if(component is Animation||component is Animator)
                 {
                     //动画禁用
-                    animator.enabled = false;
-                    animation.enabled = false;
+                    if(component is Animation animation)
+                    {
+                        animation.enabled = false;
+                        animation.Stop();
+                    }
+                    if(component is Animator animator)
+                    {
+                        animator.enabled = false;
+                        animator.runtimeAnimatorController = null;
+                    }
                 }
             }
         }
@@ -163,7 +180,7 @@ public class World : MonoBehaviour
                     if (entityLiving.isDead && entityLiving.getHealth() <= 0)
                     {
                         entityLiving.setDeath();
-                        this.removeEntity(entityLiving);
+                        removeEntityLivingBase(entityLiving);
                     }
                     else
                     {
@@ -175,7 +192,7 @@ public class World : MonoBehaviour
             // 移除死亡的实体
             entities.RemoveAll(e => e.isDead);
         }
-        for(tick=0;tick<3000;tick++)
+        for(tick=0;tick<30000;tick++)
         {
             GCCounter++;
             if(GCCounter==5)
@@ -207,5 +224,41 @@ public class World : MonoBehaviour
         World worldInstance = new World();
         worldInstance.sceneManager = v;
         return worldInstance;
+    }
+    private bool GCClose()
+    {
+        tick++;
+        if(tick>5)
+        {
+            GCCounter++;
+            if(GCCounter==2)
+            {
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                GCCounter = 0;
+            }
+            tick = 0;
+        }
+        return true;
+    }
+    //内部类
+    public class MemoryWatcher:MonoBehaviour
+    {
+        private void Update()
+        {
+            foreach(var entity in entities)
+            {
+                if (entity == null)continue;
+                IntPtr ptr = (IntPtr)entity.GetInstanceID();
+                byte[] buffer = new byte[4];
+                Marshal.Copy(ptr, buffer, 0, 4);
+                if (buffer[0] == 0xDE && buffer[1]==0xAD)
+                {
+                    Debug.LogError($"实体{entity.Name}内存泄露");
+                    entity.isRemoved = true;
+                    removeEntity(entity);
+                }
+            }
+        }
     }
 }

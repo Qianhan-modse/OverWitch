@@ -16,6 +16,7 @@ namespace OverWitch.QianHan.Entities
 
     public class Entity:MonoBehaviour
     {
+        public bool isInRemovingProcess;
         public bool isEntity;
         public string Name = "";
         public double posX;
@@ -45,6 +46,7 @@ namespace OverWitch.QianHan.Entities
         private Entity ridingEntity;
         public int currentVlaue;
         public int DeadTime;
+        public World world;
 
         public virtual void Awake()
         {
@@ -75,7 +77,7 @@ namespace OverWitch.QianHan.Entities
             source =new DamageSource();
             this.dataManager.set(HEALTH, 100.0F);
             this.setHealth(currentHealth);
-            this.dataManager.get(HEALTH, currentHealth);
+            this.dataManager.get(HEALTH);
             this.isDead = false;
         }
         //当执行kill命令时
@@ -87,7 +89,7 @@ namespace OverWitch.QianHan.Entities
         public virtual bool isEntityAlive()
         {
             this.invulnerable = true;
-            return !this.isDead;
+            return this.invulnerable;
         }
 
         //获取实体
@@ -107,7 +109,7 @@ namespace OverWitch.QianHan.Entities
                 Awake();
                 return 0;
             }
-            return dataManager.get(HEALTH,currentHealth);
+            return dataManager.get(HEALTH);
         }
         //当实体死亡时
         public virtual void onKillEntity()
@@ -179,7 +181,7 @@ namespace OverWitch.QianHan.Entities
             if (dataManager != null)
             {
                 //Debug.Log("dataManager不为null，已经获取到实体的最大生命值");
-                MaxHealth = dataManager.get(HEALTH,currentHealth);
+                MaxHealth = dataManager.get(HEALTH);
                 if (MaxHealth < 0)
                 {
                     Debug.Log("最大生命值为0，无法获取已经为零或者小于零的生命值");
@@ -218,6 +220,7 @@ namespace OverWitch.QianHan.Entities
             System.GC.WaitForPendingFinalizers();
             System.GC.Collect();
         }
+
         //内置类
         public class T { }
     }

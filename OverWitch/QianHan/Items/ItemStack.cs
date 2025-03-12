@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Assets.OverWitch.QianHan.Items
 {
-    public class ItemStack : MonoBehaviour
+    public class ItemStack : Item
     {
        public int itemDamage;
     }
