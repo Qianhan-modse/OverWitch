@@ -1,4 +1,5 @@
-﻿using OverWitch.QianHan.Entities;
+﻿using System;
+using OverWitch.QianHan.Entities;
 
 namespace OverWitch.QianHan.Util
 {
@@ -38,6 +39,9 @@ namespace OverWitch.QianHan.Util
         private bool IsUnblockable;//是否不可拦截
         private bool magicDamage;//是否为法术伤害
         private bool projectile;//是否是弹射物伤害
+        private bool breakThrough;//击破
+        private bool superSmash;//超击破
+        public bool DeadlyDamage;
 
         public DamageSource()
         {
@@ -46,7 +50,49 @@ namespace OverWitch.QianHan.Util
 
         public DamageSource(string v)
         {
-            this.v = v;
+            this.damageType = v;
+        }
+        public void setDamageValue(DamageSource source,float value)
+        {
+            EntityLivingBase livingBase = entity as EntityLivingBase;
+            if(livingBase==null)
+            {
+                return;
+            }
+            if (livingBase != null)
+            {
+                livingBase.currentDamaged = currentDamage;
+                currentDamage = value;
+                if (!entity) return;
+                if (DeadlyDamage)
+                {
+                    attackDamage = true;
+                    DeadlyDamage = true;
+                    attackDamage = DeadlyDamage;
+                    setDeadlyDamageisArmor();
+                    currentDamage = livingBase.getMaxHealth() * 0.65F;//致命攻击的伤害值为最大生命值的65%
+                }
+                if (livingBase.Armores > 0.0F)
+                {
+                    currentDamage *= 0.25F;
+                    attackDamage = attackDamage || breakThrough;
+                }
+                else if (livingBase.Armores <= 0.0F)
+                {
+                    currentDamage *= 0.8F;
+                    attackDamage = attackDamage || superSmash;
+                }
+                if (source.magicDamage || source.projectile || source.explosion || source.fireDamage)
+                {
+                    currentDamage = MathF.Max(10.0F, currentDamage); // 最小伤害为 10
+                }
+            }
+        }
+        public bool setDeadlyDamageisArmor()
+        {
+            this.DeadlyDamage = true;
+            this.damageIsAbsolute = true;
+            return true;
         }
 
         public string v { get; set; }
@@ -57,6 +103,13 @@ namespace OverWitch.QianHan.Util
         public float getHungerDamage()//获取饥饿伤害
         {
             return this.hungerDamage;
+        }
+        public DamageSource setDamageisDeadlyDamage()
+        {
+            this.IsUnblockable = true;
+            this.damageIsAbsolute = true;
+            this.DeadlyDamage = true;
+            return this;
         }
         public Entity getTrueSource()
         {

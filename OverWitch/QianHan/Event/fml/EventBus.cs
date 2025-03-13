@@ -1,8 +1,6 @@
 ﻿using EntityLivingBaseEvent;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace Assets.OverWitch.QianHan.Event.fml
 {
@@ -11,33 +9,46 @@ namespace Assets.OverWitch.QianHan.Event.fml
     /// </summary>
     public static class EventBus
     {
-        private static Dictionary<Type, List<Action<object>>> eventListeners = new Dictionary<Type, List<Action<object>>>();
+        private static readonly object locks = new object();
+        private static readonly Dictionary<Type, List<Delegate>> eventListeners = new Dictionary<Type, List<Delegate>>();
+        //private static Dictionary<Type, List<Action<object>>> eventListeners = new Dictionary<Type, List<Action<object>>>();
 
-        public static void Subscribe<T>(Action<T> listener, Type eventType) where T : class
+        public static void Subscribe<T>(Action<T> listener) where T : class
         {
-            System.Type type = typeof(T);
-            if (!eventListeners.ContainsKey(eventType))
+            Type eventType = typeof(T);
+            lock(locks)
             {
-                eventListeners[eventType] = new List<Action<object>>();
-            }
-            eventListeners[eventType].Add(e => listener(e as T));
-        }
-
-        public static void Unsubscribe<T>(Action<T> listener, Type eventType) where T : class
-        {
-            if (eventListeners.ContainsKey(eventType))
-            {
-                eventListeners[eventType].Remove(e => listener(e as T));
-            }
-        }
-
-        public static void Publish<T>(T eventInstance, Type eventType) where T : class
-        {
-            if (eventListeners.ContainsKey(eventType))
-            {
-                foreach (var listener in eventListeners[eventType])
+                if(!eventListeners.ContainsKey(eventType))
                 {
-                    listener(eventInstance);
+                    eventListeners[eventType] = new List<Delegate>();
+                }
+                eventListeners[eventType].Add(listener);
+            }
+        }
+
+        public static void Unsubscribe<T>(Action<T> listener) where T : class
+        {
+            Type eventType = typeof(T);
+            lock (locks)
+            {
+                if(eventListeners.ContainsKey(eventType))
+                {
+                    eventListeners[eventType].Remove(listener);
+                }
+            }
+        }
+
+        public static void Publish<T>(T eventInstance) where T : class
+        {
+            Type type = typeof(T);
+            lock(locks)
+            {
+                if(eventListeners.TryGetValue(type,out var listeners))
+                {
+                    foreach (var listener in listeners.ToArray())
+                    {
+                        (listener as Action<T>)?.Invoke(eventInstance);
+                    }
                 }
             }
         }

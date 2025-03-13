@@ -3,6 +3,7 @@ using OverWitch.QianHan.Event.fml.common.eventhandler;
 using OverWitch.QianHan.Log.network;
 using OverWitch.QianHan.Util;
 using System;
+using UnityEngine;
 
 namespace OverWitch.QianHan.Event
 {
@@ -17,16 +18,17 @@ namespace OverWitch.QianHan.Event
         protected bool isGlobalMark;
         public EntityEvent(Entity entity)
         {
-            this.entity = entity;
+            this.entity = entity??throw new ArgumentNullException(nameof(entity));
         }
         //两个阻止的逻辑，一个是setEvent这个布尔值，一个是setCanceled
         //但setEvent要比setCanceled更好，最起码setEvent可以管全局事件
         public bool setEvent(bool v)
         {
-            v = isGlobalMark;
+            isGlobalMark=v;
             return isCanceled= v;
         }
-        public bool getEvent() { return this.isCanceled; }
+        public bool getEvent() => isCanceled;
+        public bool getGlobalMarkEvent() => isGlobalMark;
     }
     /// <summary>
     /// 这并非是总线，而是区别于总线所以不是拼写错误
@@ -37,24 +39,21 @@ namespace OverWitch.QianHan.Event
         public float damage;
         public EventBud(Entity entity) : base(entity)
         {
-            if (entity != null)
+            if(entity is EntityLivingBase livingBase)
             {
-                EntityLivingBase livingBase = (EntityLivingBase)entity;
                 this.damage = livingBase.getDamaged();
             }
-        }
-        public DamageSource getDamageDamage() { return source; }
-        public void EntityHurtEvent(Entity entity,float damage)
-        {
-            this.source=getDamageDamage();
-            if (entity != null)
+            else
             {
-                this.damage = damage;
-                if (isCanceled)
-                { 
-                    return;
-                }
+                Debug.LogWarning("非生物体无法触发伤害事件");
             }
+        }
+        public DamageSource getDamager()=>source;
+        public bool EntityHurtEvent(Entity entity,DamageSource source,float damage)
+        {
+            this.source = source ?? throw new ArgumentNullException(nameof(source));
+            this.damage = damage;
+            return !isCanceled;
         }
     }
 }

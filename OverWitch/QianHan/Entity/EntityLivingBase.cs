@@ -18,17 +18,17 @@ public abstract class EntityLivingBase : Entity
 {
     public Entity entity;
     public bool isDestroyed;
-    private int scoreValue;
+    public int scoreValue;
     public float Armores;
     public float Defense;
     public float Dodge;
     public bool isDodge;
     protected bool dead;
-    private float currentDamaged;
-    private float MaxDamage;
-    private float MinDamage;
-    private float damage;
-    private bool dataManage;
+    public float currentDamaged;
+    public float MaxDamage;
+    public float MinDamage;
+    public float damage;
+    public bool dataManage;
     public bool isSkil;//是否为必中类型的技能
     public static readonly DataParameter<float> Damage= new DataParameter<float>("damage");
     private DamageSource Source;
@@ -144,15 +144,22 @@ public abstract class EntityLivingBase : Entity
         //if (!entity.invulnerable/* 这里是如果实体未被标记为无敌 */ || !entity.isEntityAlive()/* 这里不是负责是否存活而是管理实体是否是无敌状态 */&&this.isEntityIsDeadOrAlive()/* 这里是如果实体还活着并不是死亡 */)
         if (!entity.invulnerable && !entity.isDead)
         {
+            float currentHealth = entity.getHealth();
+            float damageTaken = value;
+            if(source.DeadlyDamage)
+            {
+                damageTaken = entity.getMaxHealth() * 0.65F;
+            }
             // 计算并更新剩余生命值
-            float currentHealth = Mathf.Max(entity.getHealth() - value, 0);
-            entity.setHealth(currentHealth);
+            //float currentHealth = Mathf.Max(entity.getHealth() - value, 0);
+            float newHealth = MathF.Max(currentHealth - damageTaken, 0.0F);
+            entity.setHealth(newHealth);
 
             // 输出日志以便调试
             Debug.Log("Entity Health: " + currentHealth);
 
             // 检查生命值是否为0或以下，如果是，则设置为死亡状态
-            if (currentHealth <= 0)
+            if (newHealth <= 0)
             {
                 entity.setDeath();
                 Debug.Log("Entity has died from: " + source.getDamageType());

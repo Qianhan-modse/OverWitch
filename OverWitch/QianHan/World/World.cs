@@ -26,6 +26,7 @@ public class World : MonoBehaviour
     private void AddEntity(Entity entity)
     {
         entities.Add(entity);
+
     }
     public static void removeEntity(Entity entity)
     {
