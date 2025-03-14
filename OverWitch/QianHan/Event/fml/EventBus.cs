@@ -1,6 +1,10 @@
-﻿using EntityLivingBaseEvent;
+﻿using Assets.OverWitch.QianHan.Event.fml.common.eventhandler;
+using Assets.OverWitch.QianHan.Log.lang;
+using EntityLivingBaseEvent;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
+//using UnityEngine;
 
 namespace Assets.OverWitch.QianHan.Event.fml
 {
@@ -53,9 +57,29 @@ namespace Assets.OverWitch.QianHan.Event.fml
             }
         }
 
-        internal static void Publish(livingBaseDeathEvent deathEvent, System.Type type)
+        //自动注册订阅事件
+        public static void AutoSubscribe(object target)
         {
-            //throw new NotImplementedException();
+            var methods = target.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            foreach (var method in methods)
+            {
+                if (method.GetCustomAttribute<SubscribeAttribute>() != null) // 检查有没有 `[Subscribe]`
+                {
+                    var parameters = method.GetParameters();
+                    if (parameters.Length == 1) // 确保方法只有一个参数
+                    {
+                        Type eventType = parameters[0].ParameterType;
+                        var actionType = typeof(Action<>).MakeGenericType(eventType);
+                        var actionDelegate = Delegate.CreateDelegate(actionType, target, method);
+
+                        typeof(EventBus).GetMethod("Subscribe")?
+                            .MakeGenericMethod(eventType)
+                            .Invoke(null, new object[] { actionDelegate });
+                        //这个不是Unity的提醒，而是由我仿照Unity的源码创建的，纯属是好玩才这么做的
+                        Debug.Log($"自动订阅事件: {eventType.Name} -> {method.Name}");
+                    }
+                }
+            }
         }
     }
 

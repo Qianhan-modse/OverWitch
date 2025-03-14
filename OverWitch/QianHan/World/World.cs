@@ -171,44 +171,66 @@ public class World : MonoBehaviour
     }
     public void onWorldUpdate()
     {
-        if (entities != null)
+        //使用tick限制更新
+        tick = 0;
+        if (tick == 0)
         {
-            foreach (Entity entity in entities)
+            tick++;
+            if (tick > 1400)
             {
-                // 确保类型安全
-                if (entity is EntityLivingBase entityLiving)
+                if (entities != null)
                 {
-                    if (entityLiving.isDead && entityLiving.getHealth() <= 0)
+                    foreach (Entity entity in entities)
                     {
-                        entityLiving.setDeath();
-                        removeEntityLivingBase(entityLiving);
+                        // 确保类型安全
+                        if (entity is EntityLivingBase entityLiving)
+                        {
+                            if (entityLiving.isDead && entityLiving.getHealth() <= 0)
+                            {
+                                entityLiving.setDeath();
+                                removeEntityLivingBase(entityLiving);
+                            }
+                            else
+                            {
+                                entityLiving.onEntityUpdate();
+                            }
+                        }
                     }
-                    else
+
+                    // 移除死亡的实体
+                    entities.RemoveAll(e => e.isDead);
+                }
+                //循环动态进行判断
+                for (tick = 0; tick < 30000; tick++)
+                {
+                    GCCounter++;
+                    if (GCCounter == 5)
                     {
-                        entityLiving.onEntityUpdate();
+                        GC.Collect();//首先GC清理,初释放内存
+                        GC.WaitForPendingFinalizers();//等待携程结束
+                        GC.Collect();//再来GC清理，释放刚标记为null的对象
+                        GCCounter = 0;//GC系数置零
+                        break;//跳出循环，避免内存浪费和性能损耗
                     }
                 }
             }
-
-            // 移除死亡的实体
-            entities.RemoveAll(e => e.isDead);
         }
-        for(tick=0;tick<30000;tick++)
+    }
+    public virtual void Update()
+    {
+        //为了节省内存，使用tick限制更新频率
+        tick = 0;
+        if (tick == 0)
         {
-            GCCounter++;
-            if(GCCounter==5)
+            tick++;
+            int tickMax = 300;
+            if(tick>tickMax)
             {
-                GC.Collect();//首先GC清理
-                GC.WaitForPendingFinalizers();//等待携程结束
-                GC.Collect();//再来GC清理
-                GCCounter = 0;
+                tick = 0;
+                onWorldUpdate();
             }
         }
     }
-    /*public virtual void Update()
-    {
-        onWorldUpdate();
-    }*/
     public void spawnEntity(Entity entity)
     {
         //这里是生成实体的逻辑

@@ -205,13 +205,12 @@ public abstract class EntityLivingBase : Entity
         {
             Entity entity = source.getTrueSource();
             EntityLivingBase entityLivingBase = this.getAttackingEntity();
-            if (entityLivingBase != null && (!entityLivingBase.isEntityAlive() && !entityLivingBase.invulnerable))
+            if (entityLivingBase != null && (!entityLivingBase.isEntityAlive()))
             {
                 this.dead = true;
                 Debug.Log("该生物已经被确定为死亡");
                 livingBaseDeathEvent deathEvent = new livingBaseDeathEvent(this, source);
-                System.Type type = typeof(T);
-                EventBus.Publish(deathEvent, type);
+                EventBus.Publish(deathEvent);
                 if (deathEvent.getEvent())
                 {
                     return;
@@ -302,14 +301,17 @@ public abstract class EntityLivingBase : Entity
     //当实体更新时调用这个逻辑
     public virtual void onEntityUpdate()
     {
-        
-        Tick++;
-        const int GC_CALL_INTERVAL = 30000;
-        //这是必要的
-        if(Tick>=GC_CALL_INTERVAL)
+        Tick = 0;
+        if (Tick == 0)
         {
-            GCCollear();
-            Tick = 0;
+            Tick++;
+            const int GC_CALL_INTERVAL = 30000;
+            //这是必要的
+            if (Tick >= GC_CALL_INTERVAL)
+            {
+                GCCollear();
+                Tick = 0;
+            }
         }
 
     }
