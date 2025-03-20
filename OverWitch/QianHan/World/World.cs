@@ -1,15 +1,11 @@
 using Assets.OverWitch.QianHan.Log.io.NewWork;
 using OverWitch.QianHan.Entities;
-using OverWitch.QianHan.Log.network;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Unity.VisualScripting;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using static UnityEngine.EventSystems.EventTrigger;
 /// <summary>
 /// 因为我真正的World类涉及Unity内核逻辑，因此这个是基于真正的World类修改版
 /// World，是掌管场景的基类，原本的是不继承MonoBehaviour但可以直接在GameObject等Untiy上挂载并使用的
@@ -20,6 +16,7 @@ public class World : MonoBehaviour
     private SceneManager sceneManager;
     private int tick;
     private int GCCounter;
+    private int Tick;
     private static EntityLivingBase livingBase;
     private static Entity entity;
 
@@ -33,8 +30,7 @@ public class World : MonoBehaviour
         //更新后的逻辑,根本用不着优化去浪费时间资源
         if (entity != null)//为了防止移除已经被标记为null的实体对象而产生错误加入了这个判断
         {
-            if (entity.isAi ||entity.isDead)
-                //这三条分别是表示当前实体对象为AI、被标记为死亡和非死亡，因为移除实体时会自动标记为死亡
+            if (entity.isDead)
             {
                 entity.isDead = true;//标记实体为死亡状态
                 entity.isAi = false;//关闭AI
@@ -60,8 +56,8 @@ public class World : MonoBehaviour
                 {
                     entity.world.removeEntityLivingBase(livingBase);
                 }
-                entity = null;//标记为null解除该实体的引用，避免占用资源
                 entity.removeEntityType();
+                entity = null;
                 //再一次回调GC，处理刚释放的对象
                 entity.world.GCClose();
             }
@@ -75,7 +71,7 @@ public class World : MonoBehaviour
         {
             //强制转换，虽然是无意义的但为了严谨
             EntityLivingBase entityLiving = (EntityLivingBase)entity;
-            //如果不为null
+            //如果不为null,因为我也不敢保证不会出现错误
             if (entityLiving != null)
             {
                 //如果被标记为死亡或者移除,原先为&&不成立
@@ -90,23 +86,18 @@ public class World : MonoBehaviour
                     collider.enabled = false;
                     DisableAllComponents(entityLiving);
                     //解除其他代码对当前实体的引用，方便后续垃圾处理
-                    entityLiving = null;
-                    /*销毁生物，一般情况下销毁后后面的CG不会生效，即使生效也不会参与垃圾回收
-                     * 该方法已被弃用，完全不用
-                    DestroyImmediate(entityLiving);*/
                     entityLiving.isRemoved = true;//标记为已移除
                     entityLiving.removeEntityType();
-                    //为了防止回收不及时再一次回调GC
-                    GCClose();
                     if (!entityLiving.isRemoved)//如果没有触发移除实体时调用GC强制回收垃圾
-                    { 
-                        entityLiving.isDestroyed = true;//标记为以销毁
+                    {
                         entityLiving.isRemoved = true;//标记为已移除
                         entityLiving.isDead = true;//标记为已死亡防止参与游戏更新
-                        entityLiving = null;//标记为null表示解除引用
-                        GCClose();
                     }
                 }
+                //跳出逻辑体标记为null表示已经不再使用
+                entityLiving = null;
+                //调用GC释放内存
+                GCClose();
             }
         }
         return true;
@@ -172,46 +163,48 @@ public class World : MonoBehaviour
     public void onWorldUpdate()
     {
         //使用tick限制更新
-        tick = 0;
-        if (tick == 0)
+        tick++;
+        //如果tick小于1400
+        if (tick < 1400)
         {
-            tick++;
-            if (tick > 1400)
+            //暴政合集不是null
+            if (entities != null)
             {
-                if (entities != null)
+                foreach (Entity entity in entities)
                 {
-                    foreach (Entity entity in entities)
+                    // 确保类型安全
+                    if (entity is EntityLivingBase entityLiving)
                     {
-                        // 确保类型安全
-                        if (entity is EntityLivingBase entityLiving)
+                        //这里是如果生物被标记为死亡或当前生命值小于等于0
+                        if (entityLiving.isDead || entityLiving.getHealth() <= 0)
                         {
-                            if (entityLiving.isDead && entityLiving.getHealth() <= 0)
-                            {
-                                entityLiving.setDeath();
-                                removeEntityLivingBase(entityLiving);
-                            }
-                            else
-                            {
-                                entityLiving.onEntityUpdate();
-                            }
+                            //setDeath方法存在标记为死亡也包含标记为强制死亡
+                            //如果不用这个方法很容易被全局事件取消导致玩家或生物出现bug
+                            entityLiving.setDeath();
+                            //调用移除生物类型的方法移除掉
+                            removeEntityLivingBase(entityLiving);
+                        }
+                        else
+                        {
+                            entityLiving.onEntityUpdate();
                         }
                     }
-
-                    // 移除死亡的实体
-                    entities.RemoveAll(e => e.isDead);
                 }
-                //循环动态进行判断
-                for (tick = 0; tick < 30000; tick++)
+
+                // 移除死亡的实体
+                entities.RemoveAll(e => e.isDead);
+            }
+            //循环动态进行判断，这个是必须的
+            for (tick = 0; tick < 30000; tick++)
+            {
+                GCCounter++;
+                if (GCCounter == 5)
                 {
-                    GCCounter++;
-                    if (GCCounter == 5)
-                    {
-                        GC.Collect();//首先GC清理,初释放内存
-                        GC.WaitForPendingFinalizers();//等待携程结束
-                        GC.Collect();//再来GC清理，释放刚标记为null的对象
-                        GCCounter = 0;//GC系数置零
-                        break;//跳出循环，避免内存浪费和性能损耗
-                    }
+                    //原先这里有一个GC，但考虑到性能删掉了，这个注释就是告诉你曾经有什么
+                    GC.WaitForPendingFinalizers();//等待携程结束
+                    GC.Collect();//再来GC清理，释放刚标记为null的对象
+                    GCCounter = 0;//GC系数置零
+                    break;//跳出循环，避免内存浪费和性能损耗
                 }
             }
         }
@@ -219,15 +212,21 @@ public class World : MonoBehaviour
     public virtual void Update()
     {
         //为了节省内存，使用tick限制更新频率
-        tick = 0;
-        if (tick == 0)
+        Tick++;
+        int TickMax = 300;
+        if(Tick<TickMax)
         {
-            tick++;
-            int tickMax = 300;
-            if(tick>tickMax)
+            onWorldUpdate();
+            Tick = 0;
+            TickMax = 0;
+            //GC计数叠加
+            GCCounter++;
+            //如果GC计数等于30000
+            if(GCCounter==30000)
             {
-                tick = 0;
-                onWorldUpdate();
+                //释放掉内存，这个方法里面也有限制，是必须也是必要的
+                GCClose();
+                GCCounter = 0;
             }
         }
     }

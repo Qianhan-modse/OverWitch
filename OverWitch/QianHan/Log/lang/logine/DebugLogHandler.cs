@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using Assets.OverWitch.QianHan.Event;
+using Assets.OverWitch.QianHan.Events;
 
 namespace Assets.OverWitch.QianHan.Log.lang.logine
 {

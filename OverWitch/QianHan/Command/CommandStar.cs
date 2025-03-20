@@ -1,7 +1,4 @@
-using System;
-using EntityLivingBaseEvent;
 using OverWitch.QianHan.Entities;
-using OverWitch.QianHan.Log.network;
 using OverWitch.QianHan.Util;
 using UnityEngine;
 using UnityEngine.UI;

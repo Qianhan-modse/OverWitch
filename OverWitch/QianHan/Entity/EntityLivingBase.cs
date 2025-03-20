@@ -4,12 +4,12 @@ using OverWitch.QianHan.Log.network;
 using OverWitch.QianHan.Util;
 
 using UnityEngine;
-using Assets.OverWitch.QianHan.Event.fml;
 using Assets.OverWitch.QianHan.Items;
 using Assets.OverWitch.QianHan.Util;
 using ItemEntityes;
 using System;
 using Tyess;
+using Assets.OverWitch.QianHan.Events.fml;
 
 /// <summary>
 /// 生物类，表示游戏中的任何可被认为是活体的实体对象
@@ -173,32 +173,6 @@ public abstract class EntityLivingBase : Entity
         }
         return false;
     }
-
-    //当生物死亡时调用这个逻辑，比如播放死亡动画、释放资源等等,目前该逻辑尚未完成
-    /*public virtual void onDeath(DamageSource source)
-    {
-        if(!this.isDead)
-        {
-            Entity entity=source.getTrueSource();
-            EntityLivingBase entityLivingBase = this.getAttackingEntity();
-            if(entityLivingBase != null&&!entityLivingBase.isEntityAlive()&&entityLivingBase.invulnerable) 
-            {
-                this.dead = true;
-                Debug.Log("该生物已经被确定为死亡");
-                livingBaseDeathEvent deathEvent = new livingBaseDeathEvent(this,source);
-                System.Type type = typeof(T);
-                EventBus.Publish(deathEvent, type);
-                if(deathEvent.getEvent())
-                {
-                    return;
-                }
-                //如果该生物有掉落物时
-                this.spawnItemEntity(entity);
-            }
-        }
-        //如果无法标记为死亡则调用setDeath()方法强制标记为死亡状态
-        this.setDeath();
-    }*/
     public virtual void onDeath(DamageSource source)
     {
         if (!this.isDead)
@@ -211,9 +185,15 @@ public abstract class EntityLivingBase : Entity
                 Debug.Log("该生物已经被确定为死亡");
                 livingBaseDeathEvent deathEvent = new livingBaseDeathEvent(this, source);
                 EventBus.Publish(deathEvent);
+                //获取全局事件变量
                 if (deathEvent.getEvent())
                 {
-                    return;
+                    //如果全局事件不是true
+                    if(!deathEvent.getEvent())
+                    {
+                        //返回不执行
+                        return;
+                    }
                 }
                 if(entityLivingBase.forceDead)
                 {
@@ -250,13 +230,6 @@ public abstract class EntityLivingBase : Entity
             {
                 this.onDeath(DamageSource.ANVIL);
             }
-            /*float newHealth = entity.getHealth() - amount;
-            entity.setHealth(newHealth);
-            if (entity.getHealth() <= 0)
-            {
-                entity.setDeath();
-                //onDeath(DamageSource.OUT_OF_WORLD); // 调用死亡处理
-            }*/
         }
         if(entity.isEntityAlive())
         {

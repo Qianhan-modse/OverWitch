@@ -16,5 +16,18 @@ namespace Assets.OverWitch.QianHan.Log.lang
         {
             logger.Log(LogType.Log, message);
         }
+        public static void Log(object message,Object context)
+        {
+            logger.Log(LogType.Log, message, context);
+        }
+
+        public static void LogWarning(object message)
+        {
+            logger.Log(LogType.Warning, message);
+        }
+        public static void LogWarning(object message,Object context)
+        {
+            logger.Log(LogType.Warning, message, context);
+        }
     }
 }
