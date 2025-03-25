@@ -10,6 +10,7 @@ using ItemEntityes;
 using System;
 using Tyess;
 using Assets.OverWitch.QianHan.Events.fml;
+using Assets.OverWitch.QianHan.Log.lang.logine;
 
 /// <summary>
 /// 生物类，表示游戏中的任何可被认为是活体的实体对象
@@ -29,12 +30,14 @@ public abstract class EntityLivingBase : Entity
     public float MinDamage;
     public float damage;
     public bool dataManage;
-    public bool isSkil;//是否为必中类型的技能
+    public bool isSkill;//是否为必中类型的技能
     public static readonly DataParameter<float> Damage= new DataParameter<float>("damage");
     private DamageSource Source;
     protected int GCClocted;
+    internal bool forceDamage;
 
     public int Tick;
+    public int TickUpdate=10;
 
     //private List<DataManager>();//未完成
     public virtual void onEntityStart()
@@ -64,6 +67,7 @@ public abstract class EntityLivingBase : Entity
         }
         
     }
+    
     //掉落物
     public void spawnItemEntity(Entity entity)
     {
@@ -119,7 +123,7 @@ public abstract class EntityLivingBase : Entity
         {
             this.onEntityStart();
         }
-        float clampedValue = Mathf.Clamp(value, 0, MaxDamage);
+        float clampedValue = Super.Clamped(value, 0, MaxDamage);
         this.dataManager.set(Damage,this.getMaxDamage());
     }
 
@@ -183,7 +187,7 @@ public abstract class EntityLivingBase : Entity
             {
                 this.dead = true;
                 Debug.Log("该生物已经被确定为死亡");
-                livingBaseDeathEvent deathEvent = new livingBaseDeathEvent(this, source);
+                LivingBaseDeathEvent deathEvent = new LivingBaseDeathEvent(this, source);
                 EventBus.Publish(deathEvent);
                 //获取全局事件变量
                 if (deathEvent.getEvent())
@@ -195,11 +199,13 @@ public abstract class EntityLivingBase : Entity
                         return;
                     }
                 }
-                if(entityLivingBase.forceDead)
+                //如果实体已经被确定为强制死亡
+                if (entityLivingBase.forceDead)
                 {
                     Debug.Log("该实体已被确定强制死亡");
                     entityLivingBase.setDeath();
-                    entityLivingBase.world.removeEntityLivingBase(entityLivingBase);//强制移除实体确定不会复活
+                    //不能使用这个方法，因为如果是还需要继续使用的生物，使用了这个方法那么就再也不能重复使用了
+                    //entityLivingBase.world.removeEntityLivingBase(entityLivingBase);//强制移除实体确定不会复活
                 }
                 // 如果该生物有掉落物时
                 this.spawnItemEntity(entity);
@@ -243,7 +249,7 @@ public abstract class EntityLivingBase : Entity
         if(entity.isDead)
         {
             EntityLivingBase livingBase = (EntityLivingBase)entity;
-            livingBase.world.removeEntityLivingBase(livingBase);
+            livingBase.onDeath(source);
             return false;
         }
         return!this.isDead;
@@ -251,7 +257,8 @@ public abstract class EntityLivingBase : Entity
     //处理当前伤害逻辑
     public virtual void currentDamage(float va1,float va2)
     {
-        float damage = UnityEngine.Random.Range(va1, va2);
+        //float damage = UnityEngine.Random.Range(va1, va2);
+        float damage = Super.Clamps(va1, va2);
         this.currentHealth -= damage;
         if (entity != null)
         {
@@ -274,15 +281,18 @@ public abstract class EntityLivingBase : Entity
     //当实体更新时调用这个逻辑
     public virtual void onEntityUpdate()
     {
-        Tick = 0;
-        if (Tick == 0)
+        Tick++;
+        if (Tick>TickUpdate)
         {
-            Tick++;
             const int GC_CALL_INTERVAL = 30000;
             //这是必要的
             if (Tick >= GC_CALL_INTERVAL)
             {
                 GCCollear();
+                Tick = 0;
+            }
+            if(Tick>0)
+            {
                 Tick = 0;
             }
         }
@@ -292,8 +302,8 @@ public abstract class EntityLivingBase : Entity
     private void UpdateDodge()
     {
         // 基础闪避逻辑，如果闪避值大于一定阈值，则设置为闪避成功
-        isDodge = Dodge > UnityEngine.Random.Range(0, 100);
-        if(this.isSkil)
+        isDodge = Dodge > Super.Clamps(0.05);
+        if(this.isSkill)
         {
             return;
         }
@@ -311,7 +321,7 @@ public abstract class EntityLivingBase : Entity
     public void OunDodge()
     {
         //如果是必中
-        if(this.isSkil)
+        if(this.isSkill)
         {
             this.setDamage(0.0F);//设置伤害值为0
         }
@@ -343,7 +353,7 @@ public abstract class EntityLivingBase : Entity
             }
             else
             {
-                currentDamaged = Mathf.Max(currentDamaged - Armores, 0);
+                currentDamaged = MathF.Max(currentDamaged - Armores, 0);
             }
         }
         return;

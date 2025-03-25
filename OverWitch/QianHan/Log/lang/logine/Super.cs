@@ -4,6 +4,8 @@ namespace Assets.OverWitch.QianHan.Log.lang.logine
 {
     public class Super
     {
+        public static double E= 2.7182818284590452354;
+        public static double PI = 3.14159265358979323846;
         /// <summary>
         /// 限制数值在最小和最大之间，支持单精度浮点、双精度浮点、整数类型
         /// </summary>
@@ -28,6 +30,33 @@ namespace Assets.OverWitch.QianHan.Log.lang.logine
                 return max;
             }
             return value;
+        }
+        //模拟Unity的Random.Range，目前还存在问题，可能
+        public static float Clamps(float value,float v)
+        {
+            return (value < v) ? value : v;
+        }
+        public static float Min(float a,float b)
+        {
+            return (a < b) ? a : b;
+        }
+
+        public static float Min(params float[] value)
+        {
+            int num = value.Length;
+            if (num == 0)
+            {
+                return 0.0F;
+            }
+            float mun2 = value[0];
+            for (int o = 1; o < num; o++)
+            {
+                if (value[o] < mun2)
+                {
+                    mun2 = value[o];
+                }
+            }
+            return mun2;
         }
         /// <summary>
         /// 限制数值为0和1之间，可模拟抽奖,支持单精度和双精度
@@ -76,6 +105,11 @@ namespace Assets.OverWitch.QianHan.Log.lang.logine
             }
             return Clamps((float)((dvalue-da)/(db-da)));
         }
+        public static double random()
+        {
+            return RandomNumberGeneratorHolder.randomNumberGenerator.NextDouble();
+        }
+        private static class RandomNumberGeneratorHolder { public static Random randomNumberGenerator = new Random(); }
         
     }
 }

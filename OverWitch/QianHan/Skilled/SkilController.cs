@@ -5,7 +5,7 @@ using UnityEngine;
 /// <summary>
 /// 技能基类，因为是玩家控制所以继承自玩家类
 /// </summary>
-public class SkilController : MonoBehaviour
+public class SkillController : MonoBehaviour
 {
     public EntityPlayer player;
     protected int skillTime = 0;
@@ -26,7 +26,7 @@ public class SkilController : MonoBehaviour
     //生命值流失
     public void HealthADD(float value)
     {
-        player.isSkil = false;//当前技能不是必中类型的技能
+        player.isSkill = false;//当前技能不是必中类型的技能
         //未完
     }
 }

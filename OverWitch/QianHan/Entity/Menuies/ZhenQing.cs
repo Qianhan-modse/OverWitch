@@ -37,7 +37,7 @@ public class ZhenQing : EntityPlayer
         {
             qing.DeadTime = 0;
             qing.dead = false;
-            var baseDeathEvent = new livingBaseDeathEvent(this, damageSource);
+            var baseDeathEvent = new LivingBaseDeathEvent(this, damageSource);
             baseDeathEvent.setCanceled(true); // 确保事件被取消，阻止实际死亡逻辑
             if(qing.forceDead) 
             {

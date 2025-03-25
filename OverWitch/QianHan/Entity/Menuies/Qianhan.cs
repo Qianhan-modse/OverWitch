@@ -63,7 +63,7 @@ public class Qianhan : EntityPlayer
         {
             qianhan.dead = false;
             qianhan.DeadTime = 0;
-            livingBaseDeathEvent deathEvent = new livingBaseDeathEvent(this, source);
+            LivingBaseDeathEvent deathEvent = new LivingBaseDeathEvent(this, source);
             deathEvent.setCanceled(true);
             qianhan.setHealth(qianhan.MaxHealth);
         }
@@ -97,7 +97,7 @@ public class Qianhan : EntityPlayer
             player.setHealth(player.MaxHealth);
 
             // 取消死亡事件
-            var livingBaseDeathEvent = new livingBaseDeathEvent(this, DamageSource.OUT_OF_WORLD);
+            var livingBaseDeathEvent = new LivingBaseDeathEvent(this, DamageSource.OUT_OF_WORLD);
             livingBaseDeathEvent.setCanceled(true);
 
             Debug.Log("Qianhan grants immortality to the player.");
@@ -162,7 +162,7 @@ public class Qianhan : EntityPlayer
         {
             qianhan.forceDead = false;
             qianhan.isDead = false;
-            livingBaseDeathEvent baseDeathEvent = new livingBaseDeathEvent(qianhan, source);
+            LivingBaseDeathEvent baseDeathEvent = new LivingBaseDeathEvent(qianhan, source);
             baseDeathEvent.setCanceled(true);
         }
         else

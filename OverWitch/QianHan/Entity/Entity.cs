@@ -1,10 +1,7 @@
 
+using Assets.OverWitch.QianHan.Log.lang.logine;
 using OverWitch.QianHan.Log.network;
 using OverWitch.QianHan.Util;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace OverWitch.QianHan.Entities
@@ -12,10 +9,13 @@ namespace OverWitch.QianHan.Entities
     /// <summary>
     /// 实体类，表示游戏中的实体对象
     /// 该类是所有实体的基类，不同于MonoBehaviour
+    /// 因为MonoBehaviour我从不会把它视为一个基础类，而是把它视为一个用于连接Unity生命周期的接口
     /// </summary>
 
     public class Entity:MonoBehaviour
     {
+        //新增变量，判断实体是不是游戏对象，虽然是无意义的
+        public bool @GameObject;
         public bool isInRemovingProcess;
         public bool isEntity;
         public string Name = "";
@@ -28,7 +28,7 @@ namespace OverWitch.QianHan.Entities
         public double motionZ;
         public bool isFallingObject;
         public bool isDead;
-        protected bool forceDead;
+        internal bool forceDead;
         public bool isAttacked;
         public bool isDamaged;
         public float Damaged;
@@ -59,6 +59,12 @@ namespace OverWitch.QianHan.Entities
         public virtual void Update()
         {
 
+        }
+        //设置该实体是否已经不再使用
+        public void setRemoved()
+        {
+            //将当前实体的isRemoved属性设置为true
+            this.isRemoved = true;
         }
         public virtual void Start()
         {
@@ -144,7 +150,7 @@ namespace OverWitch.QianHan.Entities
             }
             else
             {
-                currentHealth=Mathf.Min(currentHealth+ amount,MaxHealth);
+                currentHealth=Super.Min(currentHealth+ amount,MaxHealth);
                 dataManager.set(HEALTH, currentHealth);
             }
         }
@@ -210,13 +216,12 @@ namespace OverWitch.QianHan.Entities
                 Awake();
                 return;
             }
-            float clampedValue = Mathf.Clamp(value, 0, MaxHealth);
+            float clampedValue = Super.Clamped(value, 0, MaxHealth);
             this.dataManager.set(HEALTH,clampedValue);
         }
         //方便调用的GC，被限制使用
         public void GCCollear()
         {
-            System.GC.Collect();
             System.GC.WaitForPendingFinalizers();
             System.GC.Collect();
         }

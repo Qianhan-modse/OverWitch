@@ -24,7 +24,7 @@ namespace OverWitch.QianHan.Util
         public static DamageSource MAGIC = (new DamageSource("magic")).setDamageBypassesArmor().setDamageIsMagicDamage();
         public static DamageSource ON_FIRE = (new DamageSource("onFire")).setDamageBypassesArmor().setFireDamage();
         public static DamageSource OUT_OF_WORLD = (new DamageSource("outOfWorld")).setDamageBypassesArmor();
-        public static DamageSource SKIL = (new DamageSource("skil").setExplosion().setDifficultyScaled());
+        public static DamageSource SKILL = (new DamageSource("skil").setExplosion().setDifficultyScaled());
         public static DamageSource WITHER = (new DamageSource("wither")).setDamageBypassesArmor();
         public bool attackDamage;//是否是攻击伤害
         public string damageType;//伤害类型，以this连用表示当前伤害类型

@@ -30,12 +30,21 @@ namespace OverWitch.QianHan.Events
         /// <returns></returns>
         public bool setEvent(bool v)
         {
+            if(entity.forceDead)
+            {
+                return false;
+            }
+            else
             isCanceled = true;
             return isGlobalMark = v;
         }
         public virtual void setCanceled(bool E)
         {
-            isCanceled = E;
+            if(entity.forceDead)
+            {
+                return;
+            }
+            else isCanceled = E;
         }
         public enum Result
         {
@@ -100,37 +109,6 @@ namespace OverWitch.QianHan.Events
             }
             //×Ü·µ»Ø
             return true;
-        }
-    }
-    public class EntityEvent : Event
-    {
-        public EntityEvent(Entity entity)
-        {
-            this.entity = entity ?? throw new ArgumentNullException(nameof(entity));
-        }
-        public Entity getEntity()
-        {
-            return entity;
-        }
-        public bool getCanceled() => isCanceled;
-    }
-    public class EntityConstructing:EntityEvent
-    {
-        public EntityConstructing(Entity entity):base(entity)
-        {
-            
-        }
-    }
-    public class CanUpdate:EntityEvent
-    {
-        private bool canUpdate = false;
-        public bool getCanUpdate() { return canUpdate; }
-        public CanUpdate(Entity entity):base(entity)
-        {
-        }
-        public void setCanUpdate(bool v)
-        {
-            this.canUpdate = v;
         }
     }
 }

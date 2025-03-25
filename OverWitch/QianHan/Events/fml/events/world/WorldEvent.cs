@@ -1,4 +1,5 @@
-﻿using Assets.OverWitch.QianHan.Events.fml.events.worlds;
+﻿using Assets.OverWitch.QianHan.Events.fml.common.eventhandler;
+using Assets.OverWitch.QianHan.Events.fml.events.worlds;
 using OverWitch.QianHan.Entities;
 using OverWitch.QianHan.Events;
 
@@ -31,6 +32,8 @@ namespace Assets.OverWitch.QianHan.Events.fml.events.worlds
         {
         }
     }
+    
+    [Cancelable]
     public class CreateSpawnPosition:WorldEvent
     {
         private WorldSettings settings;
