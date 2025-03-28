@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Assets.OverWitch.QianHan.common;
 using Assets.OverWitch.QianHan.Entitys;
 using Assets.OverWitch.QianHan.Events.fml.common.eventhandler;
+using OverWitch.QianHan.Entities;
 using OverWitch.QianHan.Util;
 
 namespace Assets.OverWitch.QianHan.Events.fml.events.entity.living
@@ -17,13 +19,27 @@ namespace Assets.OverWitch.QianHan.Events.fml.events.entity.living
         private List<EntityItem> drops;
         private int lootingLevel;
         private bool recentlyHit;
+
+        public ArrayList<Entity> Drops { get; }
+        public int LootionglLevel { get; }
+
         public LivingBaseDropsEvent(EntityLivingBase entity,DamageSource source, List<EntityItem> drops, int lootingLevel, bool recentlyHit):base(entity)
         {
+            
             this.source = source;
             this.drops = drops;
             this.lootingLevel = lootingLevel;
             this.recentlyHit = recentlyHit;
         }
+
+        public LivingBaseDropsEvent(EntityLivingBase entity, DamageSource source, ArrayList<Entity> drops1, int lootionglLevel, bool recentlyHit) : base(entity)
+        {
+            this.source = source;
+            Drops = drops1;
+            LootionglLevel = lootionglLevel;
+            this.recentlyHit = recentlyHit;
+        }
+
         public DamageSource getSource()
         {
             return source;
@@ -40,5 +56,6 @@ namespace Assets.OverWitch.QianHan.Events.fml.events.entity.living
         {
             return recentlyHit;
         }
+        
     }
 }

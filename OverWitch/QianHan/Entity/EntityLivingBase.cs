@@ -18,7 +18,6 @@ using Assets.OverWitch.QianHan.Log.lang.logine;
 public abstract class EntityLivingBase : Entity
 {
     public Entity entity;
-    public bool isDestroyed;
     public int scoreValue;
     public float Armores;
     public float Defense;

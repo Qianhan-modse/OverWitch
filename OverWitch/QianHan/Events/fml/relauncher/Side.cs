@@ -13,7 +13,8 @@ namespace Assets.OverWitch.QianHan.Events.fml.relauncher
         public enum Side
         {
             CLIENT,
-            SERVER
+            SERVER,
+            CHIENT
         }
         public static Side getSide()
         {

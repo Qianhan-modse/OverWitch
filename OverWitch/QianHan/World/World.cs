@@ -6,12 +6,19 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using UnityEngine;
 /// <summary>
-/// 因为我真正的World类涉及Unity内核逻辑，因此这个是基于真正的World类修改版
-/// World，是掌管场景的基类，原本的是不继承MonoBehaviour但可以直接在GameObject等Untiy上挂载并使用的
+/// 请注意，内部蕴含一些重要的技术，
+/// 这些技术是用于优化游戏性能的，
+/// 但是这些技术是需要谨慎使用的，
+/// 否则会导致游戏出现严重的问题，
+/// 由于手动调用GC会导致游戏性能下降，
+/// 请不要频繁的去调用里面的移除实体方法，
+/// 避免因为性能过度消耗导致游戏卡顿
 /// </summary>
+//为了被Unity调用，使用了MonoBehaviour接口，请注意，我从不会把MonoBehaviour视为一个基础类，而仅将其视为是一个用于连接Unity生命周期的接口
 public class World : MonoBehaviour
 {
     public static List<Entity> entities = new List<Entity>();
+    private EntityPool pooll;
     private int tick;
     private int GCCounter;
     private int Tick;
@@ -19,10 +26,22 @@ public class World : MonoBehaviour
     private static Entity entity;
     private static Dictionary<Type,Stack<Entity>>entityPool= new Dictionary<Type,Stack<Entity>>();
 
+    //添加实体
     private void AddEntity(Entity entity)
     {
+        if (entity.isRemoved) return;
         entities.Add(entity);
 
+    }
+    //这是一个私有的构造方法，用于初始化
+    //附录，请注意，如果要使用生命周期，请不要输入构造函数，目前这个构造函数纯粹是好玩才写入的
+    private World(Entity target,EntityLivingBase entityLivingBase)
+    {
+        tick = 0;
+        GCCounter = 0;
+        Tick = 0;
+        livingBase = entityLivingBase;
+        entity = target;
     }
     /// <summary>
     /// 重要修改，不再检查是否是死亡的实体对象，而是保证实体对象是否被标记为移除，因为被移除的实体对象是不会被对象池回收的
@@ -33,11 +52,14 @@ public class World : MonoBehaviour
         //更新后的逻辑,根本用不着优化去浪费时间资源
         if (entity != null)//为了防止移除已经被标记为null的实体对象而产生错误加入了这个判断
         {
+            //将实体对象标记为已移除
+            entity.isRemoved=true;
             //原先只是判断是否死亡，但随着对象池的加入，这个判断已经不再适用，所以改为判断是否被标记为移除
             if (entity.isRemoved)
             {
                 //这些是正常的标记
-                entity.isDead = true;//标记实体为死亡状态
+                entity.isRecycle=false;//标记为不可回收
+                entity.forceDead = true;//标记实体为强制死亡状态
                 entity.isAi = false;//如果这个实体对象有AI的话，将其标记为无AI，虽然是否有AI已经不再重要，毕竟已经被标记为死亡了
                 //将实体隐藏
                 entity.gameObject.SetActive(false);
@@ -51,7 +73,7 @@ public class World : MonoBehaviour
                 Rigidbody entityRigidboy = entity.GetComponent<Rigidbody>();//禁用刚体如果有的话
                 if (entityRigidboy != null) { entityRigidboy.isKinematic = true; }
                 entities.Remove(entity);//将储存在List的实体对象参数移除防止内存损耗
-                entity.enabled = false;//停止实体更新更新
+                entity.enabled = false;//停止实体更新
                 foreach (Transform child in entity.transform)
                 {
                     child.gameObject.SetActive(false);//禁用子对象
@@ -63,8 +85,8 @@ public class World : MonoBehaviour
                 }
                 entity.removeEntityType();
                 entity = null;//你知道的，为了防止乱搞，将其标记为null，毕竟谁敢保证有些神仙不会乱搞呢
-                //再一次回调GC，处理刚释放的对象
-                entity.world.GCClose();
+                //再一次回调静态GC控制器，处理刚释放的对象
+                GCCollent();
             }
         }
     }
@@ -83,6 +105,8 @@ public class World : MonoBehaviour
             //判断生物对象是否为空，虽然永远不可能为空但为了严谨，因为我也不敢保证这个开源模板的使用者不会乱搞
             if (entityLiving != null)
             {
+                //标记生物对象为已移除
+                entityLiving.isRemoved = true;
                 //如果该生物对象被确定为不再使用时，将其移除
                 if (entityLiving.isRemoved)
                 {
@@ -100,17 +124,19 @@ public class World : MonoBehaviour
                     entityLiving.removeEntityType();
                     if (!entityLiving.isRemoved)//通常不太可能发生，但为了严谨还是加上了这个判断，毕竟万一被其他代码修改了这个标记呢
                     {
+                        //将其标记为不可回收，避免被回收
+                        entityLiving.isRecycle = false;
                         entityLiving.isRemoved = true;//标记为已移除
-                        entityLiving=null;//为了防止这个开源模板的使用者乱搞，也为了防止已经被移除的对象重新回到逻辑引用里面造成崩溃，将其标记为null
-                        entityLiving.isDead = true;//标记为已死亡防止参与游戏更新
-                        //调用GC释放内存，做最后的完结
-                        GCClose();
+                        entityLiving.forceDead = true;//标记为已死亡防止参与游戏更新
+                        entityLiving =null;//为了防止这个开源模板的使用者乱搞，也为了防止已经被移除的对象重新回到逻辑引用里面造成崩溃，将其标记为null
+                        //调用非静态GC控制器释放内存，做最后的完结
+                        GCCollents();
                     }
                 }
                 //跳出逻辑体标记为null表示已经不再使用
                 entityLiving = null;
-                //调用GC释放内存
-                GCClose();
+                //调用静态GC控制器释放内存
+                GCCollent();
             }
         }
         //返回true表示移除成功
@@ -139,8 +165,11 @@ public class World : MonoBehaviour
                 removeEntity(entity);
                 if(entities.Contains(entity))
                 {
+                    entity.gameObject.SetActive(false);
+                    entity.isRemoved = true;
                     entities.Remove(entity);
-                    entity.world.GCClose();
+                    GCCollent();
+                    
                 }
             }
             finally 
@@ -239,9 +268,8 @@ public class World : MonoBehaviour
                 GCCounter++;
                 if (GCCounter == 5)
                 {
-                    //原先这里有一个GC，但考虑到性能删掉了，这个注释就是告诉你曾经有什么
-                    GC.WaitForPendingFinalizers();//等待携程结束
-                    GC.Collect();//再来GC清理，释放刚标记为null的对象
+                    //直接调用CG控制器，不需要迭代的GC控制器
+                    GCCollent();
                     GCCounter = 0;//GC系数置零
                     break;//跳出循环，避免内存浪费和性能损耗
                 }
@@ -264,81 +292,151 @@ public class World : MonoBehaviour
             if(GCCounter==30000)
             {
                 //释放掉内存，这个方法里面也有限制，是必须也是必要的
-                GCClose();
+                GCCollents();
                 GCCounter = 0;
             }
         }
+        if(entity!= null)
+        {
+            if(entity.getHealth()<=0)
+            {
+                entity.isDead = true;
+                entity.isRecycle=true;
+                pooll.TryRecycle(entity);
+            }
+        }
     }
+    //这是一个用于生成实体对象的方法，这个方法是一个void类型的方法，不返回任何值
     public void spawnEntity(Entity entity)
     {
-        //这里是生成实体的逻辑
-        var entityType=entity.GetType();
-        if(entityPool.ContainsKey(entityType))
+        //如果实体对象为空，那么返回
+        if (entity == null) return;
+        //如果实体对象被标记为已移除，那么返回
+        if(entity.isRemoved)return;
+        //如果实体对象不为空或者实体对象没有被移除，那么将实体对象加入到实体列表中
+        if (entity != null || !entity.isRemoved)
         {
-            var pool = entityPool[entityType];
-            if(pool.Count > 0)
+            var entityType = entity.GetType();
+            //如果实体池中包含这个类型，那么将实体对象加入到实体池中
+            if (entityPool.ContainsKey(entityType))
             {
-                var recycled = pool.Pop();
-                resetEntity(recycled);
-                AddEntity(recycled);
-                return;
+                var pool = entityPool[entityType];
+                //如果实体池中的数量大于0，那么将实体对象加入到实体池中
+                if (pool.Count > 0)
+                {
+                    var recycled = pool.Pop();
+                    resetEntity(recycled);
+                    AddEntity(recycled);
+                    return;
+                }
             }
         }
         AddEntity(entity);
     }
+    //这是一个用于重置实体对象的方法，这个方法是一个void类型的方法，不返回任何值
     private static void resetEntity(Entity entity)
     {
-        entity.isDead = false;
-        entity.gameObject.SetActive(true);
-        var collider = entity.GetComponent<Collider>();
-        if (collider = null) return;
-        if (collider != null)
+        //如果实体对象为空或者实体对象被标记为已移除，那么返回，什么都不做
+        if (entity == null || entity.isRemoved) return;
+        //如果实体对象不为空或者实体对象没有被移除，那么执行后续逻辑
+        //首先保证该实体不是null
+        if (entity != null)
         {
-            collider.enabled = true;
-        }
-        var rigidbody = entity.GetComponent<Rigidbody>();
-        if (rigidbody != null)
-        {
-            rigidbody.isKinematic = false;
+            //然后保证该实体没有被标记为已移除
+            if (!entity.isRemoved)
+            {
+                //将实体对象标记为未死亡
+                entity.isDead = false;
+                //将实体对象标记为未移除
+                entity.gameObject.SetActive(true);
+                //将实体对象的父对象设置为控制器
+                var collider = entity.GetComponent<Collider>();
+                //如果实体对象的碰撞器不为空，那么将其启用
+                if (collider = null) return;
+                //将实体对象的碰撞器启用
+                if (collider != null)
+                {
+                    collider.enabled = true;
+                }
+                //将实体对象的刚体启用
+                var rigidbody = entity.GetComponent<Rigidbody>();
+                if (rigidbody != null)
+                {
+                    //将实体对象的刚体启用
+                    rigidbody.isKinematic = false;
+                }
+            }
         }
     }
+    //这是一个用于储存实体对象的方法，这个方法是一个List类型的方法，返回储存的实体对象
     public List<Entity>GetAllEntities()
     {
         return new List<Entity>(entities);
     }
-
-    private bool GCClose()
+    //静态GC控制器,主要为静态的移除实体方法使用，没有迭代避免只调用一次的移除实体时还需要迭代
+    private static void GCCollent()
     {
+        //首先等待线程的结束
+        GC.WaitForFullGCApproach();
+        //回收所有刚释放或以释放的对象
+        GC.Collect();
+    }    
+
+    //这是一个用于释放内存的方法，这个方法是一个bool类型的方法，如果释放成功返回true，否则返回false
+    private bool GCCollents()
+    {
+        //tick计数
         tick++;
-        if(tick>5)
+        //如果tick大于5
+        if (tick>5)
         {
+            //GC计数叠加
             GCCounter++;
-            if(GCCounter==2)
+            //如果GC计数等于2
+            if (GCCounter==2)
             {
+                //释放掉内存
                 GC.WaitForPendingFinalizers();
+                //再来GC清理，释放刚标记为null的对象
                 GC.Collect();
+                //GC系数置零
                 GCCounter = 0;
             }
+            //tick计数置零
             tick = 0;
         }
+        //返回true
         return true;
     }
     //内部类
+    //这是一个用于监视内存的类，这个类是一个引用MonoBehaviour接口的类，本质上即使不使用MonoBehaviour也可以实现，
+    //但为了方便调用，所以使用了MonoBehaviour
     public class MemoryWatcher:MonoBehaviour
     {
         
         private void Update()
         {
-            foreach(var entity in entities)
+            //遍历实体
+            foreach (var entity in entities)
             {
+                //如果实体为空，那么跳过
                 if (entity == null)continue;
+                //如果实体被标记为已移除，那么跳过
+                if (entity.isDamaged) continue;
+                //获取实体的指针
                 IntPtr ptr = (IntPtr)entity.GetInstanceID();
+                //创建一个缓冲区
                 byte[] buffer = new byte[4];
+                //将指针的内容复制到缓冲区
                 Marshal.Copy(ptr, buffer, 0, 4);
+                //如果缓冲区的内容为0xDEAD，那么说明这个实体对象已经被标记为移除
                 if (buffer[0] == 0xDE && buffer[1]==0xAD)
                 {
+                    //输出错误日志
                     Debug.LogError($"实体{entity.Name}内存泄露");
+                    //将实体对象标记为已移除
                     entity.isRemoved = true;
+                    //移除实体对象
                     removeEntity(entity);
                 }
             }
@@ -362,25 +460,40 @@ public class World : MonoBehaviour
         /// </summary>
         /// <param name="entity"></param>
         /// <returns></returns>
+        //这是一个用于回收实体对象的方法，这个方法是一个bool类型的方法，如果回收成功返回true，否则返回false
         public bool TryRecycle(Entity entity)
         {
+            //如果实体对象为空，那么返回false
             if (entity == null) return false;
-            if (entity.isRemoved) return false;
-            if (currentPoolSize >= maxPoolSize)
+            //如果实体对象被标记为已移除，那么返回false
+            if (entity.isDamaged) return false;
+            //如果实体对象被标记为可回收，那么返回true
+            if (entity.isRecycle)
             {
-                return false;
+                //如果当前缓存数量大于等于最大缓存数量，那么返回false
+                if (currentPoolSize >= maxPoolSize)
+                {
+                    return false;
+                }
+                //将实体对象隐藏
+                entity.gameObject.SetActive(false);
+                //将实体对象的父对象设置为空
+                entity.transform.SetParent(null);
+                //将实体对象标记为已死亡
+                entity.isDead = true;
+                //按照类型分类
+                var type = entity.GetType();
+                //如果实体池中不包含这个类型，那么创建一个新的队列
+                if (!pool.ContainsKey(type))
+                {
+                    pool[type] = new Queue<Entity>();
+                }
+                //将实体对象加入到实体池中
+                pool[type].Enqueue(entity);
+                //当前缓存数量加一
+                currentPoolSize++;
             }
-            entity.gameObject.SetActive(false);
-            entity.transform.SetParent(null);
-            entity.isDead = true;
-            //按照类型分类
-            var type = entity.GetType();
-            if (!pool.ContainsKey(type))
-            {
-                pool[type] = new Queue<Entity>();
-            }
-            pool[type].Enqueue(entity);
-            currentPoolSize++;
+            //返回true
             return true;
         }
         /// <summary>
@@ -388,22 +501,33 @@ public class World : MonoBehaviour
         /// </summary>
         /// <param name="type"></param>
         /// <returns></returns>
+        //这是一个用于从实体池中获取实体对象的方法，这个方法是一个Entity类型的方法，如果获取成功返回实体对象，否则返回null
         public Entity TrySpawn(System.Type type)
         {
-            if(entity.isRemoved)return null;
+            //如果实体被标记为已移除，那么返回null
+            if (entity.isRemoved)return null;
+            //如果实体类型为空，那么返回null
             if (type == null) return null;
+            //如果实体池中包含这个类型，那么返回null
             if (pool.TryGetValue(type, out var queue) && queue.Count > 0)
             {
+                //当前缓存数量减一
                 currentPoolSize--;
+                //返回实体对象
                 var entity = queue.Dequeue();
+                //将实体对象标记为未死亡
                 entity.isDead = false;
+                //将实体对象标记为可见
                 entity.gameObject.SetActive(true);
+                //返回实体对象
                 return entity;
             }
+            //返回null
             return null;
         }
         [Header("对象池配置")]
         public EntityPool entityPool=new EntityPool();
+        //这是一个用于从实体池中获取实体对象的方法，这个方法是一个Entity类型的方法，如果获取成功返回实体对象，否则返回null
         public Entity getEntityFromPool(Type type)
         {
             var entity=entityPool.TrySpawn(type);

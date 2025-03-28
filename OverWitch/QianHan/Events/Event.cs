@@ -52,6 +52,8 @@ namespace OverWitch.QianHan.Events
             DEFAULT,
             ALLOW
         }
+        public bool onCanceled() { return isCanceled; }
+        public bool isCancelable() { return false; }
         private Result result = Result.DEFAULT;
         private EventPriority phase = null;
         public bool getEvent() => isGlobalMark;

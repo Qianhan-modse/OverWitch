@@ -17,6 +17,7 @@ namespace OverWitch.QianHan.Entities
         //新增变量，判断实体是不是游戏对象，虽然是无意义的
         public bool @GameObject;
         public bool isInRemovingProcess;
+        public bool isRecycle;
         public bool isEntity;
         public string Name = "";
         public double posX;
