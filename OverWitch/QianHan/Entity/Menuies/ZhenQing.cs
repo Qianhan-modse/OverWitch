@@ -22,7 +22,6 @@ public class ZhenQing : EntityPlayer
             // ½ûÖ¹±ê¼ÇËÀÍö
             qing.isDead = false;
             qing.isRemoved = false;
-            qing.isDestroyed = false;
             qing.forceDead = false;
         }
         else
@@ -82,7 +81,6 @@ public class ZhenQing : EntityPlayer
             qing.setHealth(qing.MaxHealth);
             qing.dead = false;
             qing.isDead = false;
-            qing.isDestroyed = false;
         }
     }
     public override bool isEntityAlive()

@@ -2,6 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class LianGangShu : SkilController
+public class LianGangShu : SkillController
 {
 }
