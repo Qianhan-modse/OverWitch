@@ -19,7 +19,7 @@ public class EntityMob : EntityLivingBase
         this.Damaged=100;
         
     }
-    public void DamagedReduction(DamageSource source,float baseDamage)
+    public virtual void DamagedReduction(DamageSource source,float baseDamage)
     {
         //检查伤害源和伤害值的有效性
         if(source==null||baseDamage<=0)

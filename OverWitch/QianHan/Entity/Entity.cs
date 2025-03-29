@@ -12,7 +12,7 @@ namespace OverWitch.QianHan.Entities
     /// 因为MonoBehaviour我从不会把它视为一个基础类，而是把它视为一个用于连接Unity生命周期的接口
     /// </summary>
 
-    public class Entity:MonoBehaviour
+    public abstract class Entity:MonoBehaviour
     {
         //新增变量，判断实体是不是游戏对象，虽然是无意义的
         public bool @GameObject;
@@ -83,7 +83,7 @@ namespace OverWitch.QianHan.Entities
             Debug.Log($"Current Health from DataManager: {dataManager.get(HEALTH)}");*/
             source =new DamageSource();
             this.dataManager.set(HEALTH, 100.0F);
-            this.setHealth(currentHealth);
+            this.setHealth(ref currentHealth);
             this.dataManager.get(HEALTH);
             this.isDead = false;
         }
@@ -92,10 +92,28 @@ namespace OverWitch.QianHan.Entities
         {
             this.setDeath();
         }
-        //标记实体无敌
+        /// <summary>
+        /// 原先用于判断实体是否处于无敌状态
+        /// 因为某两个死犟种修改为判断存活状态
+        /// </summary>
+        /// <returns></returns>
         public virtual bool isEntityAlive()
         {
+            return !this.isDead;
+        }
+        /// <summary>
+        /// 设置实体的无敌状态
+        /// </summary>
+        public void setEntityAlive()
+        {
             this.invulnerable = true;
+        }
+        /// <summary>
+        /// 获取无敌状态
+        /// </summary>
+        /// <returns></returns>
+        public bool getEntityAlive()
+        {
             return this.invulnerable;
         }
 
@@ -138,8 +156,12 @@ namespace OverWitch.QianHan.Entities
             {
                 this.invulnerable=false;
             }
+            //标记实体为死亡状态
             this.isDead = true;
+            //标记实体为强制死亡状态
             this.forceDead = true;
+            //标记实体为可回收状态
+            this.isRecycle = true;
             Debug.Log($"{this.name} is now marked as dead (isDead: {this.isDead}, forceDead: {this.forceDead})");
         }
         //生命恢复逻辑
@@ -156,7 +178,7 @@ namespace OverWitch.QianHan.Entities
             }
         }
         //设置实体最大生命值
-       public void setMaxHealth(float value)
+       public void setMaxHealth(ref float value)
         {
             if (value <= 0)
             {
@@ -185,6 +207,12 @@ namespace OverWitch.QianHan.Entities
         //获取实体最大生命值
         public float getMaxHealth()
         {
+            if(float.IsNaN(MaxHealth))
+            {
+                Debug.LogError("最大生命值为NaN，无法获取");
+                setDeath(); 
+                return 0;
+            }
             if (dataManager != null)
             {
                 //Debug.Log("dataManager不为null，已经获取到实体的最大生命值");
@@ -206,12 +234,18 @@ namespace OverWitch.QianHan.Entities
         //生命值
         public float Health(float value)
         {
-            setHealth(value);
+            setHealth(ref value);
             return getHealth();
         }
         //设置生命值
-        public void setHealth(float value)
+        public void setHealth(ref float value)
         {
+            if (float.IsNaN((float)value))
+            {
+                Debug.Log("生命值为NaN，无法设置");
+                setDeath();
+                return;
+            }
             if(dataManager==null)
             {
                 Awake();
@@ -219,6 +253,22 @@ namespace OverWitch.QianHan.Entities
             }
             float clampedValue = Super.Clamped(value, 0, MaxHealth);
             this.dataManager.set(HEALTH,clampedValue);
+        }
+        public void setHealth(float value)
+        {
+            if (float.IsNaN((float)value))
+            {
+                Debug.Log("生命值为NaN，无法设置");
+                setDeath();
+                return;
+            }
+            if (dataManager == null)
+            {
+                Awake();
+                return;
+            }
+            float clampedValue = Super.Clamped(value, 0, MaxHealth);
+            this.dataManager.set(HEALTH, clampedValue);
         }
         //方便调用的GC，被限制使用
         public void GCCollear()

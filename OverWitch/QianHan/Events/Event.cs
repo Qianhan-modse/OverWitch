@@ -87,7 +87,7 @@ namespace OverWitch.QianHan.Events
         {
             if(entity is EntityLivingBase livingBase)
             {
-                this.damage = livingBase.getDamaged();
+                this.damage = livingBase.getDamage();
             }
             else
             {

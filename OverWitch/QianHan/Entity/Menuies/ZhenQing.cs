@@ -1,3 +1,4 @@
+using System;
 using EntityLivingBaseEvent;
 using OverWitch.QianHan.Util;
 
@@ -14,25 +15,30 @@ public class ZhenQing : EntityPlayer
     public new float moveSpeed = 100.0F;
     public new float attackSpeed = 50.0F;
     internal int additionalDamage;
+    private int MaxVaild=100000;
+    private int currentVaild;
 
+    internal void setApplyAttributeBuff()
+    {
+        currentVaild = (int)MathF.Min(currentVaild + 1000, MaxVaild);
+    }
+    /// <summary>
+    /// 振清是不死的
+    /// </summary>
     public override void setDeath()
     {
-        if (qing != null && qing == this)
+        if(entity as ZhenQing)
         {
-            // 禁止标记死亡
-            qing.isDead = false;
-            qing.isRemoved = false;
-            qing.forceDead = false;
-        }
-        else
-        {
-            base.setDeath();
+            this.isDead = false;
+            this.forceDead = false;
+            this.isRemoved = false;
+            return;
         }
     }
 
     public override void onDeath(DamageSource source)
     {
-        if (this == qing)
+        if (entity as ZhenQing)
         {
             qing.DeadTime = 0;
             qing.dead = false;
@@ -54,19 +60,19 @@ public class ZhenQing : EntityPlayer
     public override void Start()
     {
         base.Start();
-        const float initialDamage = 500.0f;
-        const float maxHealth = 8000.0f;
-        const float dodgeRate = 50.0f;
-        const float armorValue = 30.0f;
-        const float defenseValue = 40.5f;
+        float initialDamage = 500.0f;
+        float maxHealth = 8000.0f;
+        float dodgeRate = 50.0f;
+        float armorValue = 30.0f;
+        float defenseValue = 40.5f;
 
         this.currentDamage(initialDamage, 1000.0f);
         this.currentHealth = maxHealth;
         this.MaxHealth = maxHealth;
         this.setHealth(maxHealth);
         this.Dodge = dodgeRate;
-        this.Armors(armorValue);
-        this.Defens(defenseValue);
+        this.Armors(ref armorValue,source);
+        this.Defens(ref defenseValue,source);
 
         // 初始化 damageSource
         this.damageSource = source;

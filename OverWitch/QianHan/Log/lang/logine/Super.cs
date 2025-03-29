@@ -32,9 +32,10 @@ namespace Assets.OverWitch.QianHan.Log.lang.logine
             return value;
         }
         //模拟Unity的Random.Range，目前还存在问题，可能
-        public static float Clamps(float value,float v)
+        public static float Clamps(float value, float v)
         {
-            return (value < v) ? value : v;
+            //return (value < v) ? value : v;
+            return (value < 0) ? 0 : (value > v ? v : value);
         }
         public static float Min(float a,float b)
         {
