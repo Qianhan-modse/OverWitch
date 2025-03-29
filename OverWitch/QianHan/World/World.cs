@@ -449,8 +449,9 @@ public class World : MonoBehaviour
     [System.Serializable]
     public class EntityPool
     {
+        World world;
         [Tooltip("按实体类型分类储存")]
-        public Dictionary<System.Type, Queue<Entity>> pool = new Dictionary<Type, Queue<Entity>>();
+        public Dictionary<Type, Queue<Entity>> pool = new();
         [Tooltip("最大容量，缓存单位")]
         public int maxPoolSize = 100;
         [Tooltip("当前以缓存数量")]
