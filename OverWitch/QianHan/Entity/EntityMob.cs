@@ -1,15 +1,19 @@
 using Assets.OverWitch.QianHan.Items;
 using OverWitch.QianHan.Util;
+using PlayerEntity;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using Tyess;
 using UnityEngine;
+using UnityEngine.AI;
 /// <summary>
 /// 敌对生物对象基类
 /// </summary>
 public class EntityMob : EntityLivingBase
 {
+    public EntityPlayer player;
+    public Collider Mobcollider;
     //带定义
     public override void onEntityStart()
     {
@@ -18,6 +22,12 @@ public class EntityMob : EntityLivingBase
         this.setHealth(this.getMaxHealth());
         this.Damaged=100;
         
+    }
+    public override void Start()
+    {
+        base.Start();
+        this.rb = GetComponent<Rigidbody>();
+        this.navMesh = GetComponent<NavMeshAgent>();
     }
     public virtual void DamagedReduction(DamageSource source,float baseDamage)
     {
@@ -41,5 +51,25 @@ public class EntityMob : EntityLivingBase
     public override ItemStack getItemStackFromSlot(EntityEquipmentSlot slotIn)
     {
         throw new NotImplementedException();
+    }
+    public override void Update()
+    {
+        // 处理重力
+        if (!IsGrounded())
+        {
+            rb.AddForce(Vector3.down * gravity);  // 向下应用重力
+        }
+
+        // 更新NavMeshAgent的目标位置
+        if (navMesh.isOnNavMesh)
+        {
+            navMesh.SetDestination(transform.position + transform.forward * 10);  // 举个例子
+        }
+    }
+
+    bool IsGrounded()
+    {
+        // 使用射线检测来判断是否接触地面
+        return Physics.Raycast(transform.position, Vector3.down, 1.0f);
     }
 }

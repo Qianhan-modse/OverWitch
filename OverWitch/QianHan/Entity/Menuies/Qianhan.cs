@@ -2,6 +2,7 @@ using System;
 using Assets.OverWitch.QianHan.Log.lang.logine;
 using EntityLivingBaseEvent;
 using OverWitch.QianHan.Util;
+using PlayerEntity;
 using UnityEngine;
 
 public class Qianhan : EntityPlayer

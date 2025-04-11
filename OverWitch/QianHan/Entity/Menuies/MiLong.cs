@@ -1,6 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+using PlayerEntity;
 
 public class MiLong : EntityPlayer
 {

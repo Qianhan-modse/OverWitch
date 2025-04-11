@@ -1,4 +1,5 @@
 
+using System;
 using Assets.OverWitch.QianHan.Log.lang.logine;
 using OverWitch.QianHan.Log.network;
 using OverWitch.QianHan.Util;
@@ -35,10 +36,12 @@ namespace OverWitch.QianHan.Entities
         public float Damaged;
         public float MaxHealth;
         public float MinHealth;
+        [SerializeField]
         public float currentHealth;
         public DataManager dataManager;
         //public static readonly DataParameter<float> HEALTH = new DataParameter<float>("health"); 
-        public DataParameter<float> HEALTH = new DataParameter<float>("health");
+        public DataParameter<float> MAXHEALTH = new DataParameter<float>("Max_Health");
+        public DataParameter<float> CURRENTHEALTH = new DataParameter<float>("Current_Health");
         public bool isClearDebuff;
         public bool invulnerable;
         public DamageSource source;
@@ -48,18 +51,34 @@ namespace OverWitch.QianHan.Entities
         public int currentVlaue;
         public int DeadTime;
         public World world;
+        public event Action onRemoved;
+        protected bool isKey;
 
         public virtual void Awake()
         {
+            
             if (dataManager == null)
             {
                 dataManager = new DataManager();
-                Debug.Log("DataManager has been initialized.");
             }
         }
+
         public virtual void Update()
         {
-
+            //为了保证顺序能够正确，将键的获取放在Update并保证只执行一次
+            if(isKey)
+            {
+                MaxHealth = dataManager.get<float>(MAXHEALTH);
+                currentHealth = dataManager.get<float>(CURRENTHEALTH);
+                e++;
+                if(e>50)
+                {
+                    dataManager.get<float>(MAXHEALTH);
+                    dataManager.get<float>(CURRENTHEALTH);
+                    e = 0;
+                    isKey = false;
+                }
+            }
         }
         //设置该实体是否已经不再使用
         public void setRemoved()
@@ -67,25 +86,29 @@ namespace OverWitch.QianHan.Entities
             //将当前实体的isRemoved属性设置为true
             this.isRemoved = true;
         }
+        /// <summary>
+        /// 在Entity内定义的移除实体事件，通过event触发
+        /// </summary>
+        public void removeEntity()
+        {
+            if (this != null)
+            {
+                this.isRemoved = true;
+                this.onRemoved?.Invoke();
+                if(this==null)
+                {
+                    GC.Collect();
+                }
+            }
+        }
+
         public virtual void Start()
         {
-            dataManager.registerKey(HEALTH);
-            isClearDebuff = false;
-            //dataManager = new DataManager();
-            MaxHealth = 100.0F;
-            this.currentHealth = MaxHealth;
-            /*Debug.Log($"Checking if HEALTH exists in DataManager: {HEALTH.Key}");
-            if (!dataManager.dataEntries.ContainsKey(HEALTH.Key))
-            {
-                Debug.Log("HEALTH key not found, initializing...");
-                dataManager.set(HEALTH, MaxHealth);
-            }
-            Debug.Log($"Current Health from DataManager: {dataManager.get(HEALTH)}");*/
-            source =new DamageSource();
-            this.dataManager.set(HEALTH, 100.0F);
-            this.setHealth(ref currentHealth);
-            this.dataManager.get(HEALTH);
-            this.isDead = false;
+            isKey = true;
+            dataManager.registerKey(CURRENTHEALTH);
+            dataManager.registerKey(MAXHEALTH);
+            dataManager.set<float>(MAXHEALTH, 100.0F);
+            dataManager.set<float>(CURRENTHEALTH, 100.0F);
         }
         //当执行kill命令时
         public virtual void onKillCommands()
@@ -134,7 +157,8 @@ namespace OverWitch.QianHan.Entities
                 Awake();
                 return 0;
             }
-            return dataManager.get(HEALTH);
+            //return dataManager.get<float>(CURRENTHEALTH);
+            return currentHealth;
         }
         //当实体死亡时
         public virtual void onKillEntity()
@@ -162,7 +186,6 @@ namespace OverWitch.QianHan.Entities
             this.forceDead = true;
             //标记实体为可回收状态
             this.isRecycle = true;
-            Debug.Log($"{this.name} is now marked as dead (isDead: {this.isDead}, forceDead: {this.forceDead})");
         }
         //生命恢复逻辑
         public virtual void RegenHealth(float amount)
@@ -174,34 +197,23 @@ namespace OverWitch.QianHan.Entities
             else
             {
                 currentHealth=Super.Min(currentHealth+ amount,MaxHealth);
-                dataManager.set(HEALTH, currentHealth);
+                dataManager.set<float>(CURRENTHEALTH, currentHealth);
             }
         }
         //设置实体最大生命值
-       public void setMaxHealth(ref float value)
+       public void setMaxHealth(float value)
         {
-            if (value <= 0)
+            if(float.IsNaN(value))
             {
-                Debug.LogError("最大生命值不能为负数或0");
-                return;
+                setDeath();
+                throw new ArgumentException($"当前目标生命值为NaN,以及强制击杀{this}");
             }
-            if (dataManager == null)
+            if (value <= 0) { throw new ArgumentException("最大生命值必须大于0"); }
+            dataManager.set<float>(MAXHEALTH, value);
+            if(this.getHealth()>value)setHealth(value);
+            else
             {
-                Debug.LogWarning("dataManager为null，正在重新初始化");
-                this.Start();
-                if(dataManager==null)
-                {
-                    Debug.LogError("初始化失败，dataManager仍为null");
-                    return;
-                }
-                Debug.Log("已完成初始化");
-            }
-            if (dataManager!=null)
-            {
-                MaxHealth = value;
-                currentHealth = MaxHealth;
-                dataManager.set(HEALTH, MaxHealth);
-                Debug.Log("已设置目标最大生命值");
+                setHealth(this.getHealth());
             }
         }
         //获取实体最大生命值
@@ -209,18 +221,18 @@ namespace OverWitch.QianHan.Entities
         {
             if(float.IsNaN(MaxHealth))
             {
-                Debug.LogError("最大生命值为NaN，无法获取");
-                setDeath(); 
-                return 0;
+                setDeath();
+                throw new ArgumentException($"当前目标生命值为NaN,以及强制击杀{this}");
             }
             if (dataManager != null)
             {
                 //Debug.Log("dataManager不为null，已经获取到实体的最大生命值");
-                MaxHealth = dataManager.get(HEALTH);
+                //MaxHealth = dataManager.get<float>(MAXHEALTH);
                 if (MaxHealth < 0)
                 {
-                    Debug.Log("最大生命值为0，无法获取已经为零或者小于零的生命值");
+                    throw new ArgumentException("最大生命值为0，无法获取已经为零或者小于零的生命值");
                 }
+                MaxHealth = dataManager.get<float>(MAXHEALTH);
                 return MaxHealth;
             }
             return MaxHealth;
@@ -234,42 +246,38 @@ namespace OverWitch.QianHan.Entities
         //生命值
         public float Health(float value)
         {
-            setHealth(ref value);
+            setHealth(value);
             return getHealth();
         }
         //设置生命值
         public void setHealth(ref float value)
         {
-            if (float.IsNaN((float)value))
+            if(float.IsNaN(value))
             {
-                Debug.Log("生命值为NaN，无法设置");
                 setDeath();
-                return;
+                throw new ArgumentException($"当前目标生命值为NaN,以及强制击杀{this}");
             }
-            if(dataManager==null)
-            {
-                Awake();
-                return;
-            }
-            float clampedValue = Super.Clamped(value, 0, MaxHealth);
-            this.dataManager.set(HEALTH,clampedValue);
+            float clampedHealth = Super.Clamped(value, 0, this.getMaxHealth());
+            dataManager.set<float>(CURRENTHEALTH, clampedHealth);
+            currentHealth = clampedHealth;
         }
         public void setHealth(float value)
         {
             if (float.IsNaN((float)value))
             {
-                Debug.Log("生命值为NaN，无法设置");
                 setDeath();
-                return;
+                throw new ArgumentException($"生命值为NaN，无法设置,以强制击杀目标{this}");
             }
             if (dataManager == null)
             {
                 Awake();
                 return;
             }
-            float clampedValue = Super.Clamped(value, 0, MaxHealth);
-            this.dataManager.set(HEALTH, clampedValue);
+            float clampedValue = Super.Clamped(value, 0, this.getMaxHealth());
+            dataManager.set<float>(CURRENTHEALTH, clampedValue);
+            currentHealth = clampedValue;
         }
+        
         //方便调用的GC，被限制使用
         public void GCCollear()
         {

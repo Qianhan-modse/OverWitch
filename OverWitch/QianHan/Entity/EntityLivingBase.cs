@@ -3,7 +3,6 @@ using OverWitch.QianHan.Entities;
 using OverWitch.QianHan.Log.network;
 using OverWitch.QianHan.Util;
 
-using UnityEngine;
 using Assets.OverWitch.QianHan.Items;
 using Assets.OverWitch.QianHan.Util;
 using ItemEntityes;
@@ -13,6 +12,9 @@ using Assets.OverWitch.QianHan.Events.fml;
 using Assets.OverWitch.QianHan.Log.lang.logine;
 using Assets.OverWitch.QianHan.PotionEffects;
 using System.Collections.Generic;
+using Assets.OverWitch.QianHan.common;
+using UnityEngine;
+using UnityEngine.AI;
 
 /// <summary>
 /// 生物类，表示游戏中的任何可被认为是活体的实体对象
@@ -20,6 +22,12 @@ using System.Collections.Generic;
 /// </summary>
 public abstract class EntityLivingBase : Entity
 {
+    public NavMeshAgent navMesh;
+    public Rigidbody rb;
+    public OverWitch.QianHan.Events.Event evente;
+    public bool isGround;
+    public CharacterController characterController;
+    public LayerMask Ground;
     public Entity entity;
     public int scoreValue;
     public float Armores;
@@ -37,27 +45,51 @@ public abstract class EntityLivingBase : Entity
     private DamageSource Source;
     protected int GCClocted;
     internal bool forceDamage;
+    public Transform GroundCheck;
     //动画系统，来自于Unity
     public Animator animator;
+    private bool isActive;
     //是否启用动画,使用了set关键字
     public bool isAnimator;
     private List<PotionEffect>activePotionEffects=new List<PotionEffect>(){ };
-
     public int Tick;
+    public bool Jump;
+    public bool Runing;
+    public float checkRadius;
+    public bool isDIE;
+    public bool onUp;
+    public bool isFalling;
+    public float jumpForce ;
+    public float maxJumpForce;  // 最大向上力
+    public float gravityForce; // 重力加速度
+    public float jumpHeight;     // 跳跃的高度
+    public float jumpDuration;   // 跳跃的持续时间
+    public float currentJumpTime;  // 当前跳跃时间
     public int TickUpdate=10;
     private int GC_CALL_INTERVAL = 30000;
-
+    public int MaxTick;
+    public float CheckRadius;
+    public Vector3 velocity;
+    public Vector2 vector;
+    public float jumpSpeed;
+    public float gravity;
+    public bool isRunning;
+    public bool isWalking;
+    public bool isIdle;
+    public bool isAttack;
+    public bool onWalking;
+    public bool onAttack;
+    public bool RightRuning;
+    public bool LeftRuning;
+    public float moveForward;
+    public float moveRight;
+    public bool isMoving;
+    public bool isJumping;
     public virtual void onEntityStart()
     {
+        velocity.y = (float)posY;
         Source = new DamageSource();
-        dataManager=new DataManager();
         entity = this;
-        dataManager.registerKey(Damage);
-        MaxDamage = 100.0F;
-        this.currentDamaged=MaxDamage;
-        dataManager.set(Damage, 0.0F);
-        this.setDamage(currentDamaged);
-        this.dataManager.get(Damage);
         this.isDead = false;
         //如果启用了动画
         if (isAnimator)
@@ -68,20 +100,33 @@ public abstract class EntityLivingBase : Entity
     }
     public override void Start()
     {
+        dataManager = new DataManager();
+        isKey = true;
+        dataManager.registerKey(Damage);
+        this.MaxDamage = 100.0F;
+        this.currentDamaged = MaxDamage;
+        this.dataManager.set<float>(Damage, MaxDamage);
         //调用父类的Start方法
         base.Start();
         //初始化生物实体
-        onEntityStart();
+        this.onEntityStart();
+        this.GCClocted = 3000;
+        this.MaxTick = 30000;
+        this.GC_CALL_INTERVAL = 30000;
         //初始化数据管理器，注册伤害键，实际上已经在父类完成初始化了
         dataManage = (dataManager != null);
         //由查找玩家改为查找生物，因为只有生物才能造成伤害而玩家是生物的子类
         entity.GetComponent<EntityLivingBase>();
         //默认情况下动画为关闭的，如果需要请在子类中重新启动
         isAnimator = false;
+        if(!isAnimator)
+        {
+            isActive = false;
+        }
         //如果生物实体为空
         if (entity == null)
         {
-            Debug.LogError("EntityPlayer 组件未找到！请检查 GameObject 是否挂载了 EntityPlayer。");
+            //Debug.LogError("EntityPlayer 组件未找到！请检查 GameObject 是否挂载了 EntityPlayer。");
             entity = this;
             onEntityStart();
 
@@ -89,7 +134,7 @@ public abstract class EntityLivingBase : Entity
         //如果数据管理器为空
         if (dataManager==null)
         {
-            Debug.LogError("DataManager初始化失败");
+            //Debug.LogError("DataManager初始化失败");
             return;
         }
     }
@@ -105,9 +150,59 @@ public abstract class EntityLivingBase : Entity
             }
             else
             {
-                Debug.LogError("你确定实体物品是实体的子类吗？");
+                //Debug.LogError("你确定实体物品是实体的子类吗？");
             }
         }
+    }
+    public void Idle()
+    {
+        isRunning = false;
+        Runing = false;
+        isMoving = false;
+        animator.SetBool("isWalking", false);
+        animator.SetBool("onWalking", false);
+        animator.SetBool("isRunning", false);
+        animator.SetBool("isIdle", true);
+        animator.SetBool("Attack", false);
+        animator.SetBool("HeavyAttack", false);
+    }
+    public void HandleAttackInput()
+    {
+        // 左键：普通攻击
+        if (Input.GetMouseButtonDown(0))
+        {
+            animator.SetBool("HeavyAttack", false);
+            animator.SetBool("Attack", true);
+        }
+        else
+        {
+            animator.SetBool("Attack", false);
+        }
+    }
+    public void HeavyAttack()
+    {
+        onAttack = true;
+        if (Input.GetMouseButtonDown(1))
+        {
+            animator.SetBool("Attack", false);
+            animator.SetBool("HeavyAttack", true);
+        }
+        else
+        {
+            animator.SetBool("HeavyAttack", false);
+        }
+    }
+    public void HandleMovement()
+    {
+        Running();
+        Idle();
+        IsWalking();
+        OnWalking();
+        LeftRunning();
+        RightRunning();
+        JumpAnimaotr(this.animator);
+        HeavyAttack();
+        HandleAttackInput();
     }
     //获取生物的主手或副手物品
     public ItemStack getHeldItem(EnumHand hand, IllegalArgumentException illegalArgumentException)
@@ -130,6 +225,120 @@ public abstract class EntityLivingBase : Entity
             return null;
         }
     }
+    /// <summary>
+    /// 重力系统
+    /// </summary>
+    public void onGournd()
+    {
+        this.isGround = Physics.CheckSphere(GroundCheck.position, CheckRadius, Ground);
+        if (this.isGround)
+        {
+            if(velocity.y<0)
+            {
+                this.velocity.y = 0;
+            }
+            this.velocity.y = 0;
+            this.isGround = true;
+            if(this.posY==-300)
+            {
+                this.velocity.y = 0;
+            }
+        }
+        if (!this.isGround)
+        {
+            velocity.y -= gravity * Time.deltaTime;
+        }
+        characterController.Move(velocity * Time.deltaTime);
+        this.isGround = false;
+    }
+    public void JumpAnimaotr(Animator animator)
+    {
+        if (Jump)
+        {
+            if (Input.GetKeyDown(KeyCode.Space) && isGround)
+            {
+                // 开始跳跃
+                isJumping = true;
+                animator.SetBool("isJumping", true);  // 播放跳跃动画
+                velocity.y = jumpSpeed;
+            }
+        }
+    }
+    public void LeftRunning()
+    {
+        LeftRuning = true;
+        if (Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.Q))
+        {
+            //moveSpeed = RunSpeed;
+            animator.SetBool("LeftRuning", true);
+            isMoving = true;
+        }
+        else
+        {
+            animator.SetBool("LeftRuning", false);
+            isMoving = false;
+        }
+    }
+    public void RightRunning()
+    {
+        RightRuning = true;
+        if (Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.E))
+        {
+            //moveSpeed = RunSpeed;
+            animator.SetBool("RightRuning", true);
+            isMoving = true;
+        }
+        else
+        {
+            animator.SetBool("RightRuning", false);
+            isMoving = false;
+        }
+    }
+    public void IsWalking()
+    {
+        isWalking = true;
+        if (Input.GetKey(KeyCode.W))
+        {
+            //moveForward = 1.0F;
+            animator.SetBool("isWalking", true);
+            isMoving = true;
+        }
+        else
+        {
+            animator.SetBool("isWalking", false);
+            isMoving = false;
+        }
+    }
+    public void OnWalking()
+    {
+        onWalking = true;
+        if (Input.GetKey(KeyCode.S))
+        {
+            //moveForward = -1F;
+            animator.SetBool("onWalking", true);
+            isMoving = true;
+        }
+        else
+        {
+            animator.SetBool("onWalking", false);
+            isMoving = false;
+        }
+    }
+    public void Running()
+    {
+        Runing = true;
+        if (Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.W))
+        {
+            //moveSpeed = RunSpeed;
+            animator.SetBool("Runing", true);
+            isMoving = true;
+        }
+        else
+        {
+            animator.SetBool("Runing", false);
+            isMoving = false;
+        }
+    }
     public abstract ItemStack getItemStackFromSlot(EntityEquipmentSlot slotIn);
     //获取伤害值
     public float getDamage()
@@ -142,10 +351,10 @@ public abstract class EntityLivingBase : Entity
         return currentDamaged;*/
         if(dataManager == null)
         {
-            Debug.Log("数据管理器为null");
+            //Debug.Log("数据管理器为null");
             return 0;
         }
-        return dataManager.get(Damage);
+        return dataManager.get<float>(Damage);
     }
     //设置伤害值
     public void setDamage(float value)
@@ -157,7 +366,7 @@ public abstract class EntityLivingBase : Entity
         }
         float clampedValue = Super.Clamped(value,MinDamage,MaxDamage);
         //this.dataManager.set(Damage,clampedValue);
-        this.dataManager.set(Damage, clampedValue);
+        this.dataManager.set<float>(Damage, clampedValue);
         this.damage = clampedValue;
     }
 
@@ -166,10 +375,10 @@ public abstract class EntityLivingBase : Entity
     {
         if (dataManager != null)
         {
-            MaxDamage = dataManager.get(Damage);
+            MaxDamage = dataManager.get<float>(Damage);
             if (MaxDamage <= 0)
             {
-                Debug.Log("最大伤害值为0将无法造成伤害");
+                //Debug.Log("最大伤害值为0将无法造成伤害");
             }
             return MaxDamage;
         }
@@ -178,6 +387,7 @@ public abstract class EntityLivingBase : Entity
     //覆盖父类的attackEntityForm方法
     public override bool attackEntityForm(DamageSource source, float value)
     {
+        if (!ForgeHooks.onLivingAttack(this, source, value)) return false;
         //获取目标生物实体
         EntityLivingBase targetEntity = this;
         //如果目标生物实体为空
@@ -194,7 +404,7 @@ public abstract class EntityLivingBase : Entity
             if (source.DeadlyDamage)
             {
                 //将目标生物实体的最大生命值的65%作为最终伤害值
-                finalDamage = targetEntity.getMaxHealth() * 0.65F;
+                //finalDamage = targetEntity.getMaxHealth() * 0.65F;
                 //设置伤害来源为致命伤害无视护甲和防御减免
                 source.setDeadlyDamageisArmor();
             }
@@ -205,24 +415,23 @@ public abstract class EntityLivingBase : Entity
             //如果生命值为非法值
             if (float.IsNaN(newHealth)) 
             {
-                //输出警告日志
-                Debug.LogWarning($"检测到非法生命值{newHealth}，启动强制消灭程序，彻底消除实体{targetEntity}");
                 //设置该生物为死亡状态
                 targetEntity.setDeath();
                 //将该生物实体从世界中移除彻底弃用
                 targetEntity.world.removeEntityLivingBase(targetEntity);
-                //返回false不执行
-                return false;
+                //输出警告日志
+                throw new Exception($"检测到非法生命值{newHealth}，启动强制消灭程序，彻底消除实体{targetEntity}");
             }
             //设置生物的生命值为新的生命值
-            targetEntity.setHealth(ref newHealth);
-            Debug.Log($"[伤害计算]造成{finalDamage}点伤害|剩余生命值为{newHealth}");
+            targetEntity.updateCurrentHealth(newHealth);
+            //targetEntity.setHealth(newHealth);
+            //Debug.Log($"[伤害计算]造成{finalDamage}点伤害|剩余生命值为{newHealth}");
             //如果生物生命值小于等于0
             if (newHealth<=0)
             {
                 //设置生物为死亡状态
                 targetEntity.setDeath();
-                Debug.Log("生物已死亡");
+                //Debug.Log("生物已死亡");
                 //调用死亡处理
                 onDeath(source);
                 return true;
@@ -230,6 +439,16 @@ public abstract class EntityLivingBase : Entity
             return true;
         }
         return false;
+    }
+    public void updateCurrentHealth(float value)
+    {
+        if (float.IsNaN(value))
+        {
+            return;
+        }
+
+        // 更新当前血量，确保它不超过最大血量且不小于0
+        currentHealth = Mathf.Clamp(value, 0, MaxHealth);
     }
     /// <summary>
     /// 设置最大伤害值
@@ -239,7 +458,7 @@ public abstract class EntityLivingBase : Entity
     {
         if (e <= 0)
         {
-            Debug.Log("最大伤害值不能小于等于0");
+            //Debug.Log("最大伤害值不能小于等于0");
             return;
         }
         if (dataManager == null) return;
@@ -247,8 +466,7 @@ public abstract class EntityLivingBase : Entity
         { 
             MaxDamage = e;
             currentDamaged = MaxDamage;
-            dataManager.set(Damage, MaxDamage);
-            Debug.Log($"已设置最大攻击伤害为{currentDamaged}");
+            dataManager.set<float>(Damage, MaxDamage);
         } 
     }
     /// <summary>
@@ -257,6 +475,7 @@ public abstract class EntityLivingBase : Entity
     /// <param name="source"></param>
     public virtual void onDeath(DamageSource source)
     {
+        if (!ForgeHooks.onLivingDeath(this, source)) return;
         //如果生物未死亡
         if (!this.isDead)
         {
@@ -269,7 +488,6 @@ public abstract class EntityLivingBase : Entity
             {
                 //设置生物为死亡
                 this.dead = true;
-                Debug.Log("该生物已经被确定为死亡");
                 //创建生物死亡事件
                 LivingBaseDeathEvent deathEvent = new LivingBaseDeathEvent(this, source);
                 //发布生物死亡事件
@@ -287,13 +505,15 @@ public abstract class EntityLivingBase : Entity
                 //如果实体已经被确定为强制死亡
                 if (entityLivingBase.forceDead)
                 {
-                    Debug.Log("该实体已被确定强制死亡");
                     entityLivingBase.setDeath();
                 }
-                //调用死亡动画,如果已经启用isAnimator
-                if(isAnimator)
-                {
-                    Die();
+                //如果不可见是false时
+                if (!isActive) 
+                { 
+                    //将目标标记为不可见
+                    gameObject.SetActive(false);
+                    //将是否不可见设置为true
+                    this.isActive = true; 
                 }
                 this.isRecycle=true;
                 // 如果该生物有掉落物时
@@ -320,14 +540,7 @@ public abstract class EntityLivingBase : Entity
     /// </summary>
     public virtual void Die()
     {
-        if (isAnimator)
-        {
-            animator.SetBool("死亡动画", true);
-        }
-        if (isAnimator == false)
-        {
-            return;
-        }
+        
     }
     public override bool isEntityAlive()
     {
@@ -373,32 +586,44 @@ public abstract class EntityLivingBase : Entity
     }
     public override void Update()
     {
+        base.Update();
+        if (isKey)
+        {
+            this.dataManager.get<float>(Damage);
+            isKey = false;
+        }
         onEntityUpdate();
+        this.isGround = Physics.CheckSphere(GroundCheck.position, CheckRadius, Ground);
+        if (this.isGround)
+        {
+            if (velocity.y < 0)
+            {
+                this.velocity.y = 0;
+            }
+            this.velocity.y = 0;
+            this.isGround = true;
+        }
+        if (!this.isGround)
+        {
+            velocity.y -= gravity * Time.deltaTime;
+        }
+        characterController.Move(velocity * Time.deltaTime);
+        this.isGround = false;
     }
     //命令系统，目前还存在一点问题
     public override void onKillCommands()
     {
         base.onKillCommands();
         this.attackEntityForm(DamageSource.OUT_OF_WORLD, float.MaxValue);
-        Debug.Log($"哎呦，那看起来很疼,{this.name}掉出了这个世界");
+        throw new Exception($"哎呦，那看起来很疼,{this.name}掉出了这个世界");
     }
 
     //当实体更新时调用这个逻辑
     public virtual void onEntityUpdate()
     {
-        Tick++;
-        if (Tick>TickUpdate)
-        {
-            GC_CALL_INTERVAL++;
-            //这是必要的
-            if (Tick >= GC_CALL_INTERVAL)
-            {
-                GCCollear();
-                Tick = 0;
-            }
-        }
-
+        
     }
+
 
     private void UpdateDodge()
     {
@@ -426,7 +651,6 @@ public abstract class EntityLivingBase : Entity
         UpdateDodge();
         if(isDodge&&!isSkill)
         {
-            Debug.Log("[闪避]成功闪避攻击");
             return 0;
         }
         Armors(ref currentDamaged, source);
@@ -462,21 +686,14 @@ public abstract class EntityLivingBase : Entity
 
     public override void RegenHealth(float value)
     {
-        base.RegenHealth(value);
-        if (this.getMaxHealth()!=0)
+        if (this.getHealth() != 0 || this.getMaxHealth() != 0)
         {
-            // 简单的生命值恢复逻辑
-            if (entity.getHealth() < this.getMaxHealth())
+            float currentHealth = this.getHealth();
+            if (currentHealth < this.getMaxHealth())
             {
-                //entity.setHealth(this.getHealth() + 0.1f); 
-                // 每帧恢复0.1点生命值
-                float regenAmount=entity.getHealth()+0.1F;
-                entity.setHealth(ref regenAmount);
+                float regenAmount=Mathf.Min(currentHealth+value, this.getMaxHealth());
+                this.setHealth(regenAmount);
             }
-        }
-        else
-        {
-            Debug.LogError("生物类型或者生物当前最大生命值为0");
         }
     }
     public void getDefense()
@@ -512,7 +729,10 @@ public abstract class EntityLivingBase : Entity
         Nine = 9,
         Ten = 10,
     }
+    public virtual void onAnimator()
+    {
 
+    }
     private void UpdateDefense()
     {
         float baseDefense = Armores * 0.5F;

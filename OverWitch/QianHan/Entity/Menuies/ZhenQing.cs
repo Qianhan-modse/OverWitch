@@ -1,6 +1,7 @@
 using System;
 using EntityLivingBaseEvent;
 using OverWitch.QianHan.Util;
+using PlayerEntity;
 
 public class ZhenQing : EntityPlayer
 {

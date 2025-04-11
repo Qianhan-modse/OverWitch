@@ -1,11 +1,10 @@
-﻿using System.Collections;
-using Assets.OverWitch.QianHan.Entitys;
-using Assets.OverWitch.QianHan.Events.fml.common;
+﻿using Assets.OverWitch.QianHan.Events.fml.common;
 using Assets.OverWitch.QianHan.Events.fml.events.entity.living;
 using Assets.OverWitch.QianHan.PotionEffects;
 using EntityLivingBaseEvent;
 using OverWitch.QianHan.Entities;
 using OverWitch.QianHan.Util;
+using PlayerEntity;
 
 namespace Assets.OverWitch.QianHan.common
 {
