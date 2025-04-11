@@ -7,5 +7,9 @@ namespace Assets.OverWitch.QianHan.Items
     public class ItemStack : Item
     {
        public int itemDamage;
+
+        public ItemStack(int maxDamage) : base(maxDamage)
+        {
+        }
     }
 }

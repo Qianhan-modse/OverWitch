@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using PlayerEntity;
 using UnityEngine;
 
 namespace Assets.OverWitch.QianHan.Skilled

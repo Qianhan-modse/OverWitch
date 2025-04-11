@@ -91,7 +91,7 @@ namespace OverWitch.QianHan.Log.network
         // 通用的 set 方法
         public void set<T>(DataParameter<T> parameter, T value)
         {
-            Debug.Log($"Setting value for {parameter.Key}: {value}");
+            //Debug.Log($"Setting value for {parameter.Key}: {value}");
             DataEntry<T> dataEntry = this.getEntry(parameter);
 
             // 如果新值和旧值不同，进行更新
@@ -101,11 +101,11 @@ namespace OverWitch.QianHan.Log.network
                 dataEntry.setValue(value);
                 this.NotifyDataManagerChange(parameter);
                 dataEntry.setDirty(true);
-                Debug.Log($"Successfully set {parameter.Key} to {value}");
+                //Debug.Log($"Successfully set {parameter.Key} to {value}");
             }
             else
             {
-                Debug.Log($"No change for {parameter.Key}, value is the same: {value}");
+                //Debug.Log($"No change for {parameter.Key}, value is the same: {value}");
             }
         }
         public void registerKey<T>(DataParameter<T>parameter)
@@ -114,45 +114,32 @@ namespace OverWitch.QianHan.Log.network
             {
                 var entry = new DataEntry<T>(default(T));
                 dataEntries.Add(parameter.Key, entry);
-                Debug.Log($"Key'{parameter.Key}'以显示注册");
+                //Debug.Log($"Key'{parameter.Key}'以显示注册");
             }
         }
 
         public T get<T>(DataParameter<T> parameter)
         {
-            // 在获取数据前打印调试信息
-            /*Debug.Log($"Attempting to get value for {parameter.Key}");
-
+            //Debug.Log($"尝试获取键值：{parameter.Key}|当前数据条目:{dataEntries.Count}");
+            //访问字典
             if (dataEntries.TryGetValue(parameter.Key, out object entry))
             {
-                Debug.Log($"Successfully retrieved value for {parameter.Key}: {((DataEntry<T>)entry).GetValue()}");
-                return ((DataEntry<T>)entry).GetValue();
-            }
-            else
-            {
-                Debug.LogWarning($"Key '{parameter.Key}' not found.");
-                return default(T); // 返回T类型的默认值
-            }*/
-            Debug.Log($"尝试获取键值：{parameter.Key}|当前数据条目:{dataEntries.Count}");
-            //访问字典
-            if(dataEntries.TryGetValue(parameter.Key,out object entry))
-            {
-                if(entry is DataEntry<T>typedEntry)
+                if (entry is DataEntry<T> typedEntry)
                 {
-                    Debug.Log($"成功获取键值:{parameter.Key}={typedEntry.GetValue()}");
+                    //Debug.Log($"成功获取键值:{parameter.Key}={typedEntry.GetValue()}");
                     return typedEntry.GetValue();
                 }
                 else
                 {
-                    Debug.Log($"类型不匹配，键{parameter.Key}的类型为{entry.GetType()}而非{typeof(DataEntry<T>)}");
+                   // Debug.Log($"类型不匹配，键{parameter.Key}的类型为{entry.GetType()}而非{typeof(DataEntry<T>)}");
                     HandleTypeMismatch(parameter.Key, typeof(T));
                     return default;//这里是default隶属于T，因此是简化的
                 }
             }
-            Debug.LogWarning($"键{parameter.Key}不存在，正在进行修复");
+            //Debug.LogWarning($"键{parameter.Key}不存在，正在进行修复");
             var newEntry = new DataEntry<T>(default(T));
             dataEntries.Add(parameter.Key, newEntry);
-            Debug.Log($"新建条目栈轨迹：\n{Environment.StackTrace}");
+            //Debug.Log($"新建条目栈轨迹：\n{Environment.StackTrace}");
             return newEntry.GetValue();
         }
         protected void HandleTypeMismatch(string key,Type expectedType)
@@ -162,12 +149,12 @@ namespace OverWitch.QianHan.Log.network
             {
                 dynamic converted = Convert.ChangeType(catualEntry, expectedType);
                 dataEntries[key] = new DataEntry<T>(converted);
-                Debug.LogWarning($"以强制转换{key}到{expectedType}");
+                //Debug.LogWarning($"以强制转换{key}到{expectedType}");
             }
             catch
             {
                 dataEntries[key] = new DataEntry<T>(default(T));
-                Debug.LogError($"无法转换{key}，已重置为默认值");
+                //Debug.LogError($"无法转换{key}，已重置为默认值");
             }
             GlobalEventSystem.NotifyDataCorruption(key, expectedType);
         }
@@ -187,12 +174,12 @@ namespace OverWitch.QianHan.Log.network
             }*/
             if(dataEntries.TryGetValue(parameter.Key,out object entry))
             {
-                Debug.Log($"访问已存在的键:{parameter.Key}");
+                //Debug.Log($"访问已存在的键:{parameter.Key}");
                 return (DataEntry<T>)entry;
             }
             else
             {
-                Debug.LogWarning($"隐式创建新键:{parameter.Key}");
+                //Debug.LogWarning($"隐式创建新键:{parameter.Key}");
                 var newEntry = new DataEntry<T>(default(T));
                 dataEntries.Add(parameter.Key, newEntry);
                 return newEntry;
@@ -202,12 +189,12 @@ namespace OverWitch.QianHan.Log.network
         private void NotifyDataManagerChange<T>(DataParameter<T> parameter)
         {
             // 在这里处理数据变化的逻辑
-            Debug.Log($"Data changed: {parameter.Key}");
+            //Debug.Log($"Data changed: {parameter.Key}");
         }
         //为了方便调用添加了隐式转换,用于将bool与数据单元的转换格式
         public static implicit operator bool(DataManager v)
         {
-            Debug.Log("已成功转换为bool/隐式转换");
+            //Debug.Log("已成功转换为bool/隐式转换");
             return v != null
                    && v.dataEntries.Count > 0;
         }
@@ -236,7 +223,7 @@ namespace OverWitch.QianHan.Log.network
 
         public static explicit operator bool(ExplicitDataManager v)
         {
-            Debug.Log("显式转换为 bool");
+            //Debug.Log("显式转换为 bool");
             return v != null && v.dataManager.dataEntries.Count > 0;
         }
     }

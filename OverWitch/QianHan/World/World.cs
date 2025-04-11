@@ -24,7 +24,7 @@ public class World : MonoBehaviour
     private int Tick;
     private static EntityLivingBase livingBase;
     private static Entity entity;
-    private static Dictionary<Type,Stack<Entity>>entityPool= new Dictionary<Type,Stack<Entity>>();
+    private static Dictionary<Type, Stack<Entity>> entityPool = new Dictionary<Type, Stack<Entity>>();
 
     //ÃÌº” µÃÂ
     private void AddEntity(Entity entity)
